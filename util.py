@@ -1,3 +1,4 @@
+from warnings import filterwarnings
 from sklearn.cross_validation import KFold, StratifiedKFold
 
 
@@ -22,3 +23,9 @@ def cross_validate(estimator, x_data, y_data, n_folds=3, stratified=False):
 
     return train_scores, test_scores
 
+
+def filter_warnings():
+    # Preserve output sanity.
+    # These warnings don't affect anything and are unnecessary.
+    filterwarnings('ignore', 'numpy not_equal will not check object')
+    filterwarnings('ignore', 'downsample module has been moved to')

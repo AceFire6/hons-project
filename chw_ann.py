@@ -12,12 +12,14 @@ chw_data = CHWData('chw_data.csv', label,
 
 nn = Classifier(
     layers=[
-        Layer('Sigmoid', units=5),
+        Layer('Rectifier', units=10),
         Layer('Softmax')],
-    learning_rate=0.02,
-    n_iter=15, verbose=True, debug=True)
+    learning_rate=0.02, n_iter=25, verbose=True)
+
+x_train, x_test, y_train, y_test = chw_data.get_test_train_data_m(0.8)
+nn.fit(x_train, y_train)
+print nn.score(x_test, y_test)
 
 scores = cross_val_score(nn, chw_data.features, chw_data.targets, cv=5)
 
-print 'ANN Accuracy: %0.2f (+/- %0.2f)' % (scores.mean(),
-                                           scores.std() * 2)
+print 'ANN Accuracy: %0.2f (+/- %0.2f)' % (scores.mean(), scores.std() * 2)

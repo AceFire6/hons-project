@@ -30,8 +30,9 @@ class CHWData(object):
         for feature in categorical_features:
             dataset[feature] = label_encoder.fit_transform(dataset[feature])
 
-        number_features = features.diff(categorical_features)
-        dataset[number_features] = normalize(dataset[number_features])
+        if categorical_features:
+            number_features = features.diff(categorical_features)
+            dataset[number_features] = normalize(dataset[number_features])
 
         if assign:
             self._processed_dataset = dataset
@@ -57,20 +58,31 @@ class CHWData(object):
         return self.dataset[self._features]
 
     @property
-    def targets(self):
-        return self.dataset[self.label]
-
-    @property
     def features_m(self):
         return self.features.as_matrix()
+
+    def get_features(self, x_num=90, as_matrix=False):
+        x_labels = self._get_x_labels(x_num)
+        feats = self.features.drop(x_labels, axis=1)
+        if as_matrix:
+            return feats.as_matrix()
+        return feats
+
+    @property
+    def targets(self):
+        return self.dataset[self.label]
 
     @property
     def targets_m(self):
         return self.targets.as_matrix()
 
-    def get_test_train_data(self, train_portion):
-        return train_test_split(self.features, self.targets,
+    def _get_x_labels(self, num_x):
+        return ['X%d' % (i + 1) for i in range(90)][num_x:]
+
+    def get_test_train_data(self, train_portion, num_x=90):
+        return train_test_split(self.get_features(num_x), self.targets,
                                 train_size=train_portion)
 
-    def get_test_train_data_m(self, train_portion):
-        return [i.as_matrix() for i in self.get_test_train_data(train_portion)]
+    def get_test_train_data_m(self, train_portion, num_x=90):
+        return [i.as_matrix()
+                for i in self.get_test_train_data(train_portion, num_x)]

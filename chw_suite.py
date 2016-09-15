@@ -1,12 +1,14 @@
 from chw_data import CHWData
 
-import matplotlib.pyplot as plt
 import matplotlib
+import matplotlib.pyplot as plt
 
 from sklearn.cross_validation import cross_val_score
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
+
+from sknn.platform import gpu64
 from sknn.mlp import Classifier, Layer
 
 
@@ -25,7 +27,7 @@ nn = Classifier(
     layers=[
         Layer('Rectifier', units=10),
         Layer('Softmax')],
-    learning_rate=0.02, n_iter=20, verbose=False)
+    learning_rate=0.02, n_iter=150, verbose=None)
 
 estimators = {'Decision Tree': tree, 'Random Forest': forest,
               'SVM': svm, 'Neural Network': nn}
@@ -34,10 +36,15 @@ estimators = {'Decision Tree': tree, 'Random Forest': forest,
 def param_run(num_x, cross_folds, drop_cols=list()):
     results = []
     for estimator_name, estimator in estimators.iteritems():
-        feature_data = chw_data.get_features(num_x, True).drop(drop_cols)
-        cross_score = cross_val_score(estimator, feature_data,
-                                      chw_data.targets_m, cv=cross_folds)
-        print '[%d] %s Accuracy: %0.2f (+/- %0.2f)' % (num_x, estimator_name,
+        print '[%d] Starting %s' % (num_x, estimator_name)
+        feature_data = chw_data.get_features(num_x).drop(drop_cols)
+        feature_data = (feature_data.as_matrix()
+                        if estimator_name == 'Neural Network'
+                        else feature_data)
+        cross_score = cross_val_score(estimator, n_jobs=-1,
+                                      X=feature_data,
+                                      y=chw_data.targets, cv=cross_folds)
+        print '     %s Accuracy: %0.2f (+/- %0.2f)' % (estimator_name,
                                                        cross_score.mean(),
                                                        cross_score.std() * 2)
         results.append((estimator_name, cross_score.mean()))

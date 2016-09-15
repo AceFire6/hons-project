@@ -31,7 +31,7 @@ class CHWData(object):
             dataset[feature] = label_encoder.fit_transform(dataset[feature])
 
         if categorical_features:
-            number_features = features.diff(categorical_features)
+            number_features = features.difference(categorical_features)
             dataset[number_features] = normalize(dataset[number_features])
 
         if assign:

@@ -1,3 +1,5 @@
+import json
+
 from chw_data import CHWData
 
 import matplotlib
@@ -29,8 +31,8 @@ nn = Classifier(
         Layer('Softmax')],
     learning_rate=0.02, n_iter=150, verbose=None)
 
-estimators = {'Decision Tree': tree, 'Random Forest': forest,
-              'SVM': svm, 'Neural Network': nn}
+estimators = {'Decision_Tree': tree, 'Random_Forest': forest,
+              'SVM': svm, 'Neural_Network': nn}
 
 
 def param_run(num_x, cross_folds, drop_cols=list()):
@@ -47,7 +49,7 @@ def param_run(num_x, cross_folds, drop_cols=list()):
         print '     %s Accuracy: %0.2f (+/- %0.2f)' % (estimator_name,
                                                        cross_score.mean(),
                                                        cross_score.std() * 2)
-        results.append((estimator_name, cross_score.mean()))
+        results.append((estimator_name, cross_score))
     return results
 
 all_scores = {i: [] for i in estimators.keys()}
@@ -57,7 +59,9 @@ for x in x_val_range:
     result_scores = param_run(x, cross_folds=10)
     for result in result_scores:
         name, val = result
-        all_scores[name].append(val)
+        all_scores[name].append(val.mean())
+        with open('x-vals-%s-scores.json' % name, 'a+') as fout:
+            fout.write(json.dumps(val.tolist()) + '\n')
 
 legend = []
 styles = iter(['-', '--', '-.', ':'])
@@ -67,6 +71,7 @@ for name, scores in all_scores.iteritems():
     legend.append(name)
 
 plt.legend(legend, loc=4)
+plt.ylim(0, 1)
 plt.ylabel('Accuracy')
 plt.xlabel('Number of days included')
 plt.savefig('x-vals-compare.png')

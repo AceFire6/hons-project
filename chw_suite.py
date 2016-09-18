@@ -1,5 +1,6 @@
 import itertools
 import json
+import argparse
 
 from chw_data import CHWData
 from util import generate_n_rgb_colours, round_up
@@ -7,27 +8,11 @@ from util import generate_n_rgb_colours, round_up
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy
-from sklearn.cross_validation import cross_val_score
+from sklearn.model_selection import cross_val_score
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
-
-
-matplotlib.rcParams['backend'] = "Qt4Agg"
-label = 'activeQ2'
-drop_features = ['projectCode', 'userCode']
-categorical_features = ['country', 'sector']
-
-chw_data = CHWData('chw_data.csv', label, drop_features, categorical_features)
-
-tree = DecisionTreeClassifier()
-forest = RandomForestClassifier()
-svm = SVC()
-nn = MLPClassifier()
-
-estimators = {'Decision_Tree': tree, 'Random_Forest': forest,
-              'Neural_Network': nn, 'SVM': svm}
 
 
 def param_run(num_x=90, cross_folds=10, drop_cols=list()):
@@ -94,6 +79,8 @@ def draw_graph_from_files(experiment):
 
 
 def effect_of_day_data_experiment():
+    print('Running Effect of Day Experiment\n'
+          '--------------------------------')
     all_scores = {i: [[], []] for i in estimators.keys()}
     # Go through all values of X (1-90)
     x_val_range = range(1, 91)
@@ -107,7 +94,7 @@ def effect_of_day_data_experiment():
                 fout.write(json.dumps(val.tolist()) + '\n')
 
     config = {
-        'x_values': x_val_range, 'file_name': 'xvals-compare.png',
+        'x_values': x_val_range, 'file_name': 'xvals-graph.png',
         'y_label': 'Accuracy', 'x_label': 'Number of days included',
     }
     draw_graph(all_scores, **config)
@@ -117,6 +104,49 @@ def effect_of_day_data_experiment():
 
 
 if __name__ == '__main__':
-    print('Running Effect of Day Experiment')
-    effect_of_day_data_experiment()
-    # draw_graph_from_files('xvals')
+    experiments = [
+        '0. Effect of Number of Days Included (1-90)',
+    ]
+    experiment_functions = [
+        effect_of_day_data_experiment,
+    ]
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-e', '--experiment', dest='experiments', type=int,
+                        nargs='*', choices=range(len(experiments)),
+                        help='Choose which experiments to run as list',)
+    parser.add_argument('-g', '--graph', dest='graph_file', type=str,
+                        help='Graph values from experiment',)
+    parser.add_argument('-l', '--list', action='store_true',
+                        help='List all experiments')
+    args = parser.parse_args()
+
+    matplotlib.rcParams['backend'] = "Qt4Agg"
+    label = 'activeQ2'
+    drop_features = ['projectCode', 'userCode']
+    categorical_features = ['country', 'sector']
+
+    chw_data = CHWData('chw_data.csv', label, drop_features,
+                       categorical_features)
+
+    tree = DecisionTreeClassifier()
+    forest = RandomForestClassifier()
+    svm = SVC()
+    nn = MLPClassifier()
+
+    estimators = {'Decision_Tree': tree, 'Random_Forest': forest,
+                  'Neural_Network': nn, 'SVM': svm}
+
+    if args.list:
+        print 'All Experiments:\n----------------'
+        print '\n'.join(experiments)
+    elif args.graph_file:
+        print 'Drawing graph: %s' % args.graph_file
+        draw_graph_from_files(args.graph_file)
+    elif not args.experiments:
+        print 'Running All Experiments\n=======================\n'
+        map(lambda func: func(), experiment_functions)
+    elif args.experiments:
+        for exp_no in range(len(experiment_functions)):
+            if exp_no in args.experiments:
+                experiment_functions[exp_no]()

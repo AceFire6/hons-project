@@ -10,6 +10,7 @@ import matplotlib
 from matplotlib.ticker import MultipleLocator
 import matplotlib.pyplot as plt
 import numpy
+from numpy import ndarray
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import cross_val_score
 from sklearn.neural_network import MLPClassifier
@@ -64,53 +65,60 @@ def draw_graph(graph_scores, x_values, y_lim=(0, 1), x_lim=None,
     plt.savefig(file_name)
 
 
-def draw_graph_from_files(experiment):
+def draw_graph_from_file(experiment):
     file_scores = {}
     with open('%s-config.json' % experiment) as config_file:
         config = json.loads(config_file.readline())
 
-    classifiers = config.pop('classifiers', [])
-    date = config.pop('date', '')
-    date = '-' + date if date else ''
+    results = config.pop('results', [])
 
-    for classifier in classifiers:
-        file_name = '%s%s-%s.json' % (experiment, date, classifier)
-        with open(file_name) as f_in:
-            file_scores[classifier] = [[], []]
-            for line in f_in.readlines():
-                vals = numpy.array(json.loads(line))
-                file_scores[classifier][0].append(vals.mean())
-                file_scores[classifier][1].append(vals.std())
+    for classifier, scores in results.iteritems():
+        file_scores[classifier] = [[], []]
+        for score in scores:
+            score = numpy.array(score)
+            file_scores[classifier][0].append(score.mean())
+            file_scores[classifier][1].append(score.std())
 
     draw_graph(file_scores, **config)
 
 
+def write_out_results(experiment, results, x_values, x_label, y_label, date,
+                      file_name=None, draw=True):
+    file_name = file_name or '%s-%s-graph.png' % (experiment, date)
+    agg_scores = {i: [[], []] for i in results.keys()}
+
+    for name, values in results.iteritems():
+        for val in values:
+            agg_scores[name][0].append(val.mean())
+            agg_scores[name][1].append(val.std())
+
+    config = {
+        'x_values': x_values, 'file_name': file_name, 'y_label': y_label,
+        'x_label': x_label,
+    }
+
+    if draw:
+        draw_graph(agg_scores, **config)
+
+    config['results'] = {n: map(ndarray.tolist, results[n]) for n in results}
+    with open('%s-%s-config.json' % (experiment, date), 'w') as config_file:
+        config_file.write(json.dumps(config))
+
+
 def effect_of_day_data_experiment():
-    print('Running Effect of Day Experiment\n'
-          '--------------------------------')
+    print('Running Effect of Day Experiment\n--------------------------------')
     date = datetime.utcnow().replace(microsecond=0).isoformat()
-    all_scores = {i: [[], []] for i in estimators.keys()}
+    out_results = {i: [] for i in estimators.keys()}
     # Go through all values of X (1-90)
     x_val_range = range(1, 91)
     for x in x_val_range:
         result_scores = param_run(num_x=x, cross_folds=10)
         for result in result_scores:
             name, val = result
-            all_scores[name][0].append(val.mean())
-            all_scores[name][1].append(val.std())
-            with open('xvals-%s-%s.json' % (date, name), 'a+') as fout:
-                fout.write(json.dumps(val.tolist()) + '\n')
+            out_results[name].append(val)
 
-    config = {
-        'x_values': x_val_range, 'file_name': 'xvals-%s-graph.png' % date,
-        'y_label': 'Accuracy', 'x_label': 'Number of days included',
-    }
-    draw_graph(all_scores, **config)
-
-    config['classifiers'] = estimators.keys()
-    config['date'] = date
-    with open('xvals-%s-config.json' % date, 'w') as config_file:
-        config_file.write(json.dumps(config))
+    write_out_results('xvals', out_results, x_val_range,
+                      'Number of days included', 'Accuracy', date)
 
 
 if __name__ == '__main__':
@@ -145,8 +153,8 @@ if __name__ == '__main__':
     nn = MLPClassifier(hidden_layer_sizes=(50, 50))
 
     estimators = {
-        'Decision_Tree': tree, 'Random_Forest': forest, 'SVM': svm,
-        'Neural_Network': nn,
+        'Decision_Tree': tree, 'Random_Forest': forest,
+        'SVM': svm, 'Neural_Network': nn,
     }
 
     if args.list:
@@ -154,7 +162,7 @@ if __name__ == '__main__':
         print '\n'.join(experiments)
     elif args.graph_file:
         print 'Drawing graph: %s' % args.graph_file
-        draw_graph_from_files(args.graph_file)
+        draw_graph_from_file(args.graph_file)
     elif not args.experiments:
         print 'Running All Experiments\n=======================\n'
         map(lambda func: func(), experiment_functions)

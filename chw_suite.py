@@ -1,15 +1,17 @@
+import argparse
+from datetime import datetime
 import itertools
 import json
-import argparse
 
 from chw_data import CHWData
 from util import generate_n_rgb_colours, round_up
 
 import matplotlib
+from matplotlib.ticker import MultipleLocator
 import matplotlib.pyplot as plt
 import numpy
-from sklearn.model_selection import cross_val_score
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import cross_val_score
 from sklearn.neural_network import MLPClassifier
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
@@ -25,15 +27,15 @@ def param_run(num_x=90, cross_folds=10, drop_cols=list()):
         cross_score = cross_val_score(estimator, n_jobs=-1,
                                       X=feature_data,
                                       y=chw_data.targets, cv=cross_folds)
-        print '     %s Accuracy: %0.2f (+/- %0.2f)' % (estimator_name,
+        print '     %s Accuracy: %0.2f (+/- %0.3f)' % (estimator_name,
                                                        cross_score.mean(),
-                                                       cross_score.std() * 2)
+                                                       cross_score.std())
         results.append((estimator_name, cross_score))
     return results
 
 
 def draw_graph(graph_scores, x_values, y_lim=(0, 1), x_lim=None,
-               y_label='', x_label='', file_name='', min_err=0.2):
+               y_label='', x_label='', file_name='', min_err=0.2, grid=True):
     legend = []
     colours = iter(generate_n_rgb_colours(len(estimators)))
     markers = ['o', '^', 's', 'D']
@@ -43,14 +45,17 @@ def draw_graph(graph_scores, x_values, y_lim=(0, 1), x_lim=None,
     x_lim = x_lim or (0, round_up(len(x_values)))
 
     plt.ioff()
+    plt.grid(grid)
     for graph_label, graph_vals in graph_scores.iteritems():
         y_vals, y_err = graph_vals
         y_err = y_err if any(map(lambda x: x > min_err, y_err)) else None
         plt.errorbar(x_values, y_vals, yerr=y_err, fmt=next(styles),
                      c=next(colours), linewidth=1.5, markersize=7,
                      markeredgewidth=1)
-        legend.append(graph_label)
+        legend.append(graph_label.replace('_', ' '))
 
+    plt.gca().yaxis.set_major_locator(MultipleLocator(base=0.1))
+    plt.gca().xaxis.set_major_locator(MultipleLocator(base=1.0))
     plt.legend(legend, loc=4)
     plt.ylim(y_lim)
     plt.xlim(x_lim)
@@ -64,10 +69,12 @@ def draw_graph_from_files(experiment):
     with open('%s-config.json' % experiment) as config_file:
         config = json.loads(config_file.readline())
 
-    classifiers = config.pop('classifiers')
+    classifiers = config.pop('classifiers', [])
+    date = config.pop('date', '')
+    date = '-' + date if date else ''
 
     for classifier in classifiers:
-        file_name = '%s-%s.json' % (experiment, classifier)
+        file_name = '%s%s-%s.json' % (experiment, date, classifier)
         with open(file_name) as f_in:
             file_scores[classifier] = [[], []]
             for line in f_in.readlines():
@@ -81,6 +88,7 @@ def draw_graph_from_files(experiment):
 def effect_of_day_data_experiment():
     print('Running Effect of Day Experiment\n'
           '--------------------------------')
+    date = datetime.utcnow().replace(microsecond=0).isoformat()
     all_scores = {i: [[], []] for i in estimators.keys()}
     # Go through all values of X (1-90)
     x_val_range = range(1, 91)
@@ -90,16 +98,18 @@ def effect_of_day_data_experiment():
             name, val = result
             all_scores[name][0].append(val.mean())
             all_scores[name][1].append(val.std())
-            with open('xvals-%s.json' % name, 'a+') as fout:
+            with open('xvals-%s-%s.json' % (date, name), 'a+') as fout:
                 fout.write(json.dumps(val.tolist()) + '\n')
 
     config = {
-        'x_values': x_val_range, 'file_name': 'xvals-graph.png',
+        'x_values': x_val_range, 'file_name': 'xvals-%s-graph.png' % date,
         'y_label': 'Accuracy', 'x_label': 'Number of days included',
     }
     draw_graph(all_scores, **config)
+
     config['classifiers'] = estimators.keys()
-    with open('xvals-config.json') as config_file:
+    config['date'] = date
+    with open('xvals-%s-config.json' % date, 'w') as config_file:
         config_file.write(json.dumps(config))
 
 
@@ -132,10 +142,12 @@ if __name__ == '__main__':
     tree = DecisionTreeClassifier()
     forest = RandomForestClassifier()
     svm = SVC()
-    nn = MLPClassifier()
+    nn = MLPClassifier(hidden_layer_sizes=(50, 50))
 
-    estimators = {'Decision_Tree': tree, 'Random_Forest': forest,
-                  'Neural_Network': nn, 'SVM': svm}
+    estimators = {
+        'Decision_Tree': tree, 'Random_Forest': forest, 'SVM': svm,
+        'Neural_Network': nn,
+    }
 
     if args.list:
         print 'All Experiments:\n----------------'

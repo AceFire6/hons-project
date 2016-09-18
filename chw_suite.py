@@ -6,12 +6,12 @@ from util import generate_n_rgb_colours, round_up
 
 import matplotlib
 import matplotlib.pyplot as plt
+import numpy
 from sklearn.cross_validation import cross_val_score
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.neural_network import MLPClassifier
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
-from sknn.platform import gpu64
-from sknn.mlp import Classifier, Layer
 
 
 matplotlib.rcParams['backend'] = "Qt4Agg"
@@ -24,14 +24,10 @@ chw_data = CHWData('chw_data.csv', label, drop_features, categorical_features)
 tree = DecisionTreeClassifier()
 forest = RandomForestClassifier()
 svm = SVC()
-nn = Classifier(
-    layers=[
-        Layer('Rectifier', units=10),
-        Layer('Softmax')],
-    learning_rate=0.02, n_iter=150, verbose=None)
+nn = MLPClassifier()
 
 estimators = {'Decision_Tree': tree, 'Random_Forest': forest,
-              'SVM': svm, 'Neural_Network': nn}
+              'Neural_Network': nn, 'SVM': svm}
 
 
 def param_run(num_x=90, cross_folds=10, drop_cols=list()):
@@ -57,8 +53,8 @@ def draw_graph(graph_scores, x_values, y_lim=(0, 1), x_lim=None,
     colours = iter(generate_n_rgb_colours(len(estimators)))
     markers = ['o', '^', 's', 'D']
     line_types = ['-', '--', ':']
-    styles = itertools.cycle(itertools.product(markers, line_types))
-
+    styles = [''.join(i) for i in itertools.product(line_types, markers)]
+    styles = itertools.cycle(styles)
     x_lim = x_lim or (0, round_up(len(x_values)))
 
     plt.ioff()
@@ -78,6 +74,25 @@ def draw_graph(graph_scores, x_values, y_lim=(0, 1), x_lim=None,
     plt.savefig(file_name)
 
 
+def draw_graph_from_files(experiment):
+    file_scores = {}
+    with open('%s-config.json' % experiment) as config_file:
+        config = json.loads(config_file.readline())
+
+    classifiers = config.pop('classifiers')
+
+    for classifier in classifiers:
+        file_name = '%s-%s.json' % (experiment, classifier)
+        with open(file_name) as f_in:
+            file_scores[classifier] = [[], []]
+            for line in f_in.readlines():
+                vals = numpy.array(json.loads(line))
+                file_scores[classifier][0].append(vals.mean())
+                file_scores[classifier][1].append(vals.std())
+
+    draw_graph(file_scores, **config)
+
+
 def effect_of_day_data_experiment():
     all_scores = {i: [[], []] for i in estimators.keys()}
     # Go through all values of X (1-90)
@@ -88,13 +103,20 @@ def effect_of_day_data_experiment():
             name, val = result
             all_scores[name][0].append(val.mean())
             all_scores[name][1].append(val.std())
-            with open('x-vals-%s-scores.json' % name, 'a+') as fout:
+            with open('xvals-%s.json' % name, 'a+') as fout:
                 fout.write(json.dumps(val.tolist()) + '\n')
 
-    draw_graph(all_scores, x_val_range, file_name='x-vals-compare.png',
-               y_label='Accuracy', x_label='Number of days included')
+    config = {
+        'x_values': x_val_range, 'file_name': 'xvals-compare.png',
+        'y_label': 'Accuracy', 'x_label': 'Number of days included',
+    }
+    draw_graph(all_scores, **config)
+    config['classifiers'] = estimators.keys()
+    with open('xvals-config.json') as config_file:
+        config_file.write(json.dumps(config))
 
 
 if __name__ == '__main__':
     print('Running Effect of Day Experiment')
     effect_of_day_data_experiment()
+    # draw_graph_from_files('xvals')

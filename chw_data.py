@@ -1,7 +1,8 @@
 from util import filter_warnings
 
+import pandas
 from pandas import DataFrame
-from sklearn.preprocessing import LabelEncoder, normalize
+from sklearn.preprocessing import normalize
 
 
 class CHWData(object):
@@ -24,10 +25,12 @@ class CHWData(object):
         dataset.drop(drop_cols, axis=1, inplace=True)
 
         features = dataset.columns.drop(label)
-        label_encoder = LabelEncoder()
 
         for feature in categorical_features:
-            dataset[feature] = label_encoder.fit_transform(dataset[feature])
+            dummies = pandas.get_dummies(dataset[feature])
+            features = features.append(dummies.columns).drop(feature)
+            dataset = pandas.concat([dataset, dummies], axis=1)
+            dataset.drop(feature, axis=1, inplace=True)
 
         if categorical_features:
             number_features = features.difference(categorical_features)

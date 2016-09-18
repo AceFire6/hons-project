@@ -2,7 +2,6 @@ from util import filter_warnings
 
 from pandas import DataFrame
 from sklearn.preprocessing import LabelEncoder, normalize
-from sklearn.cross_validation import train_test_split
 
 
 class CHWData(object):
@@ -78,11 +77,3 @@ class CHWData(object):
 
     def _get_x_labels(self, num_x):
         return ['X%d' % (i + 1) for i in range(90)][num_x:]
-
-    def get_test_train_data(self, train_portion, num_x=90):
-        return train_test_split(self.get_features(num_x), self.targets,
-                                train_size=train_portion)
-
-    def get_test_train_data_m(self, train_portion, num_x=90):
-        return [i.as_matrix()
-                for i in self.get_test_train_data(train_portion, num_x)]

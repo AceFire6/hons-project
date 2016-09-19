@@ -15,6 +15,10 @@ def round_up(x, nearest=1):
     return int(nearest * math.ceil(float(x) / nearest))
 
 
+def print_title(title, underline=''):
+    print '%s\n%s' % (title, underline * len(title))
+
+
 def filter_warnings():
     # Preserve output sanity.
     # These warnings don't affect anything and are unnecessary.

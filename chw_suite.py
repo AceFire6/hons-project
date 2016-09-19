@@ -4,7 +4,7 @@ import itertools
 import json
 
 from chw_data import CHWData
-from util import generate_n_rgb_colours, round_up
+from util import generate_n_rgb_colours, round_up, print_title
 
 from joblib import Parallel, delayed
 import matplotlib
@@ -142,8 +142,7 @@ def cross_validate_score(estimator, feature_data, target_data, test_data=None,
 
 
 def effect_of_day_data_experiment():
-    title = 'Running Effect of Day Experiment'
-    print('%s\n%s' % (title, '-' * len(title)))
+    print_title('Running Effect of Day Experiment', '-')
     out_results = {i: [] for i in estimators.keys()}
     # Go through all values of X (1-90)
     x_val_range = range(1, 91)
@@ -158,8 +157,7 @@ def effect_of_day_data_experiment():
 
 
 def region_generalization_experiment():
-    title = 'Running Region Generalization Experiment'
-    print('%s\n%s' % (title, '-' * len(title)))
+    print_title('Running Region Generalization Experiment', '-')
     region_data_size = 500
     countries = chw_data._dataset.groupby('country').size().sort_values()
     countries = countries[countries > region_data_size].keys().tolist()
@@ -224,13 +222,13 @@ if __name__ == '__main__':
     colours = iter(generate_n_rgb_colours(len(estimators)))
 
     if args.list:
-        print 'All Experiments:\n----------------'
+        print_title('All Experiments:', '-')
         print '\n'.join(experiments)
     elif args.graph_file:
         print 'Drawing graph: %s' % args.graph_file
         draw_graph_from_file(args.graph_file, args.split)
     elif not args.experiments:
-        print 'Running All Experiments\n=======================\n'
+        print_title('Running All Experiments', '=')
         map(lambda func: func(), experiment_functions)
     elif args.experiments:
         for exp_no in range(len(experiment_functions)):

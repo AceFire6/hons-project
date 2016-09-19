@@ -67,7 +67,10 @@ class CHWData(object):
         return self.features.as_matrix()
 
     def get_features(self, x_num=90, col_select=None, as_matrix=False):
-        feats = self.features[self.get_indices(col_select or {})]
+        feats = self.features
+        indices = self.get_indices(col_select or {})
+        if indices:
+            feats = feats[indices]
         x_labels = self._get_x_labels(x_num)
         feats = feats.drop(x_labels, axis=1)
         return feats.as_matrix() if as_matrix else feats
@@ -81,7 +84,10 @@ class CHWData(object):
         return self.targets.as_matrix()
 
     def get_targets(self, col_select=None, as_matrix=False):
-        targets = self.targets[self.get_indices(col_select or {})]
+        targets = self.targets
+        indices = self.get_indices(col_select or {})
+        if indices:
+            targets = targets[indices]
         return targets.as_matrix() if as_matrix else targets
 
     def _get_x_labels(self, num_x):

@@ -26,14 +26,17 @@ class CHWData(object):
 
         features = dataset.columns.drop(label)
 
+        new_categorical_features = []
         for feature in categorical_features:
             dummies = pandas.get_dummies(dataset[feature])
             features = features.append(dummies.columns).drop(feature)
             dataset = pandas.concat([dataset, dummies], axis=1)
+            setattr(self, feature, dummies.columns)
+            new_categorical_features.extend(dummies.columns.tolist())
             dataset.drop(feature, axis=1, inplace=True)
 
         if categorical_features:
-            number_features = features.difference(categorical_features)
+            number_features = features.difference(new_categorical_features)
             dataset[number_features] = normalize(dataset[number_features])
 
         if assign:
@@ -63,12 +66,11 @@ class CHWData(object):
     def features_m(self):
         return self.features.as_matrix()
 
-    def get_features(self, x_num=90, as_matrix=False):
+    def get_features(self, x_num=90, col_select=None, as_matrix=False):
+        feats = self.features[self.get_indices(col_select or {})]
         x_labels = self._get_x_labels(x_num)
-        feats = self.features.drop(x_labels, axis=1)
-        if as_matrix:
-            return feats.as_matrix()
-        return feats
+        feats = feats.drop(x_labels, axis=1)
+        return feats.as_matrix() if as_matrix else feats
 
     @property
     def targets(self):
@@ -78,5 +80,15 @@ class CHWData(object):
     def targets_m(self):
         return self.targets.as_matrix()
 
+    def get_targets(self, col_select=None, as_matrix=False):
+        targets = self.targets[self.get_indices(col_select or {})]
+        return targets.as_matrix() if as_matrix else targets
+
     def _get_x_labels(self, num_x):
         return ['X%d' % (i + 1) for i in range(90)][num_x:]
+
+    def get_indices(self, col_select):
+        results = []
+        for key, val in col_select.iteritems():
+            results = self.dataset[key] == val
+        return results

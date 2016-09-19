@@ -174,14 +174,33 @@ def region_generalization_experiment():
     write_out_results('region', out_results, countries, 'Country', 'Accuracy')
 
 
+def sector_generalization_experiment():
+    print_title('Running Region Generalization Experiment', '-')
+    sectors = chw_data._dataset.sector.unique()
+    sectors = [sector for sector in sectors if type(sector) == str]
+    out_results = {name: [] for name in estimators.keys()}
+
+    for sector in sectors:
+        col_select = {sector: 1}
+        result_scores = param_run(debug_label=sector, cross_folds=10,
+                                  col_select=col_select, test_data=chw_data)
+        for result in result_scores:
+            name, val = result
+            out_results[name].append(val)
+
+    write_out_results('sector', out_results, sectors, 'Sector', 'Accuracy')
+
+
 if __name__ == '__main__':
     experiments = [
         '0. Effect of Number of Days Included (1-90)',
         '1. Ability to Generalize Region Data',
+        '2. Ability to Generalize Sector Data',
     ]
     experiment_functions = [
         effect_of_day_data_experiment,
-        region_generalization_experiment
+        region_generalization_experiment,
+        sector_generalization_experiment,
     ]
 
     parser = argparse.ArgumentParser()

@@ -159,8 +159,8 @@ def effect_of_day_data_experiment():
 def region_generalization_experiment():
     print_title('Running Region Generalization Experiment', '-')
     region_data_size = 500
-    countries = chw_data._dataset.groupby('country').size().sort_values()
-    countries = countries[countries > region_data_size].keys().tolist()
+    countries = [key for key, val in chw_data.country.iteritems()
+                 if val > region_data_size]
     out_results = {name: [] for name in estimators.keys()}
 
     for country in countries:

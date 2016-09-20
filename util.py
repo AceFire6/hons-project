@@ -3,6 +3,7 @@ import math
 from warnings import filterwarnings
 
 import numpy
+import pycountry
 
 
 def generate_n_rgb_colours(n, saturation=0.34, value=0.58):
@@ -17,6 +18,20 @@ def round_up(x, nearest=1):
 
 def print_title(title, underline=''):
     print '%s\n%s' % (title, underline * len(title))
+
+
+def get_short_codes(countries):
+    codes = []
+    for country in countries:
+        country = country.title()
+        try:
+            codes.append(pycountry.countries.get(name=country).alpha3)
+        except KeyError:
+            for c in pycountry.countries:
+                if country in c.name:
+                    codes.append(c.alpha3)
+                    continue
+    return codes
 
 
 def filter_warnings():

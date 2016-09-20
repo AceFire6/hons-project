@@ -176,7 +176,7 @@ def region_generalization_experiment():
 
 def sector_generalization_experiment():
     print_title('Running Region Generalization Experiment', '-')
-    sectors = chw_data._dataset.sector.unique()
+    sectors = set(chw_data.sector)
     sectors = [sector for sector in sectors if type(sector) == str]
     out_results = {name: [] for name in estimators.keys()}
 

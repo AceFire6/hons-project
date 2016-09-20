@@ -4,7 +4,7 @@ import itertools
 import json
 
 from chw_data import CHWData
-from util import generate_n_rgb_colours, round_up, print_title
+from util import generate_n_rgb_colours, get_short_codes, print_title, round_up
 
 from joblib import Parallel, delayed
 import matplotlib
@@ -37,8 +37,9 @@ def param_run(debug_label=None, num_x=90, cross_folds=10, col_select=None,
     return results
 
 
-def draw_graph(graph_scores, x_values, y_lim=(0, 1), x_lim=None,
-               y_label='', x_label='', file_name='', min_err=0.02, grid=True):
+def draw_graph(graph_scores, x_values, y_lim=(0, 1), x_lim=None, y_label='',
+               x_label='', file_name='', grid=True):
+    min_err = 0.02
     legend = []
     x_lim = x_lim or (0, round_up(len(x_values)))
 
@@ -60,8 +61,7 @@ def draw_graph(graph_scores, x_values, y_lim=(0, 1), x_lim=None,
     if type(x_values[0]) in [int, float]:
         plt.gca().xaxis.set_major_locator(MultipleLocator(base=1.0))
     else:
-        plt.xticks(x_range, x_values, rotation=90)
-        plt.tight_layout()
+        plt.xticks(x_range, x_values)
     plt.legend(legend, loc=4)
     plt.ylim(y_lim)
     plt.xlim(x_lim)
@@ -170,7 +170,7 @@ def region_generalization_experiment():
         for result in result_scores:
             name, val = result
             out_results[name].append(val)
-
+    countries = get_short_codes(countries)
     write_out_results('region', out_results, countries, 'Country', 'Accuracy')
 
 
@@ -234,8 +234,10 @@ if __name__ == '__main__':
     nn = MLPClassifier(hidden_layer_sizes=(50, 50))
 
     estimators = {
-        'Decision_Tree': tree, 'Random_Forest': forest,
-        'SVM': svm, 'Neural_Network': nn,
+        'Decision_Tree': tree,
+        'Random_Forest': forest,
+        'SVM': svm,
+        'Neural_Network': nn,
     }
 
     colours = iter(generate_n_rgb_colours(len(estimators)))

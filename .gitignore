@@ -1,3 +1,4 @@
+*.pyc
 chw_data.csv
 *-config.json
 *.png

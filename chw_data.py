@@ -31,7 +31,8 @@ class CHWData(object):
             dummies = pandas.get_dummies(dataset[feature])
             features = features.append(dummies.columns).drop(feature)
             dataset = pandas.concat([dataset, dummies], axis=1)
-            setattr(self, feature, dummies.columns)
+            feature_counts = dataset.groupby(feature).size().to_dict()
+            setattr(self, feature, feature_counts)
             new_categorical_features.extend(dummies.columns.tolist())
             dataset.drop(feature, axis=1, inplace=True)
 

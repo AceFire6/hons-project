@@ -240,7 +240,7 @@ if __name__ == '__main__':
         'Neural_Network': nn,
     }
 
-    colours = iter(generate_n_rgb_colours(len(estimators)))
+    colours = itertools.cycle(generate_n_rgb_colours(len(estimators)))
 
     if args.list:
         print_title('All Experiments:', '-')

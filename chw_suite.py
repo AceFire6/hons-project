@@ -4,7 +4,8 @@ import itertools
 import json
 
 from chw_data import CHWData
-from util import generate_n_rgb_colours, get_short_codes, print_title, round_up
+from util import (generate_n_rgb_colours, get_short_codes, list_index,
+                  print_title, round_up)
 
 from joblib import Parallel, delayed
 import matplotlib
@@ -30,9 +31,8 @@ def param_run(debug_label=None, num_x=90, cross_folds=10, col_select=None,
         target_data = chw_data.get_targets(col_select)
         score = cross_validate_score(estimator, feature_data, target_data,
                                      test_data=test_data, cv=cross_folds)
-        print '     %s Accuracy: %0.2f (+/- %0.3f)' % (estimator_name,
-                                                       score.mean(),
-                                                       score.std())
+        accuracy_report_vals = (estimator_name, score.mean(), score.std())
+        print '%s Accuracy: %0.2f (+/- %0.3f)' % accuracy_report_vals
         results.append((estimator_name, score))
     return results
 
@@ -41,27 +41,37 @@ def draw_graph(graph_scores, x_values, y_lim=(0, 1), x_lim=None, y_label='',
                x_label='', file_name='', grid=True):
     min_err = 0.02
     legend = []
-    x_lim = x_lim or (0, round_up(len(x_values)))
 
     x_range = x_values
     if type(x_values[0]) not in [int, float]:
         x_range = range(1, len(x_values) + 1)
+        x_lim = x_lim or (0, round_up(len(x_range)))
+
+    x_ticks = args.x_ticks
+    x_range = list_index(x_range, x_ticks)
+
+    x_lim = x_lim or (0, round_up(x_range[-1]))
 
     plt.ioff()
     plt.grid(grid)
     for graph_label, graph_vals in graph_scores.iteritems():
         y_vals, y_err = graph_vals
         y_err = y_err if any(map(lambda x: x > min_err, y_err)) else None
+        if args.x_ticks:
+            y_vals = list_index(y_vals, x_ticks)
+            y_err = list_index(y_err, x_ticks)
         plt.errorbar(x_range, y_vals, yerr=y_err, fmt=next(styles),
                      c=next(colours), linewidth=1.5, markersize=7,
                      markeredgewidth=1)
         legend.append(graph_label.replace('_', ' '))
 
     plt.gca().yaxis.set_major_locator(MultipleLocator(base=0.1))
-    if type(x_values[0]) in [int, float]:
-        plt.gca().xaxis.set_major_locator(MultipleLocator(base=1.0))
+    if args.x_ticks or type(x_values[0]) not in [int, float]:
+        labels = list_index(x_values, x_ticks)
+        plt.xticks(x_range, labels)
     else:
-        plt.xticks(x_range, x_values)
+        plt.gca().xaxis.set_major_locator(MultipleLocator(base=1.0))
+
     plt.legend(legend, loc=4)
     plt.ylim(y_lim)
     plt.xlim(x_lim)
@@ -209,6 +219,8 @@ if __name__ == '__main__':
                         help='Choose which experiments to run as list',)
     parser.add_argument('-g', '--graph', dest='graph_file', type=str,
                         help='Graph values from experiment',)
+    parser.add_argument('-x', dest='x_ticks', type=int, nargs='*',
+                        help='Select which x axis features to show by index',)
     parser.add_argument('-s', '--split', action='store_true',
                         help='Generate a separate graph for each estimator')
     parser.add_argument('-l', '--list', action='store_true',
@@ -231,7 +243,7 @@ if __name__ == '__main__':
     tree = DecisionTreeClassifier()
     forest = RandomForestClassifier()
     svm = SVC()
-    nn = MLPClassifier(hidden_layer_sizes=(50, 50))
+    nn = MLPClassifier(hidden_layer_sizes=(50,))
 
     estimators = {
         'Decision_Tree': tree,

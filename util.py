@@ -20,6 +20,12 @@ def print_title(title, underline=''):
     print '%s\n%s' % (title, underline * len(title))
 
 
+def list_index(select_list, indices):
+    if not select_list or not indices:
+        return select_list
+    return [select_list[i] for i in indices]
+
+
 def get_short_codes(countries):
     codes = []
     for country in countries:

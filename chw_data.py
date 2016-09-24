@@ -67,10 +67,11 @@ class CHWData(object):
     def features_m(self):
         return self.features.as_matrix()
 
-    def get_features(self, x_num=90, col_select=None, as_matrix=False):
+    def get_features(self, x_num=90, col_select=None, as_matrix=False,
+                     exclude=False):
         feats = self.features
-        indices = self.get_indices(col_select or {})
-        if type(indices) != list:
+        indices = self.get_indices(col_select or {}, exclude)
+        if not indices.empty:
             feats = feats[indices]
         x_labels = self._get_x_labels(x_num)
         feats = feats.drop(x_labels, axis=1)
@@ -84,18 +85,21 @@ class CHWData(object):
     def targets_m(self):
         return self.targets.as_matrix()
 
-    def get_targets(self, col_select=None, as_matrix=False):
+    def get_targets(self, col_select=None, as_matrix=False, exclude=False):
         targets = self.targets
-        indices = self.get_indices(col_select or {})
-        if type(indices) != list:
+        indices = self.get_indices(col_select or {}, exclude)
+        if not indices.empty:
             targets = targets[indices]
         return targets.as_matrix() if as_matrix else targets
 
     def _get_x_labels(self, num_x):
         return ['X%d' % (i + 1) for i in range(90)][num_x:]
 
-    def get_indices(self, col_select):
-        results = []
+    def get_indices(self, col_select, exclude=False):
+        results = pandas.Series()
         for key, val in col_select.iteritems():
-            results = self.dataset[key] == val
+            if exclude:
+                results = results.append(self.dataset[key] != val)
+            else:
+                results = results.append(self.dataset[key] == val)
         return results

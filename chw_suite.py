@@ -22,17 +22,25 @@ from sklearn.tree import DecisionTreeClassifier
 
 
 def param_run(debug_label=None, num_x=90, cross_folds=10, col_select=None,
-              drop_cols=list(), test_data=None):
+              drop_cols=list(), repeat_test=False):
     results = []
     debug_label = '[{}] '.format(debug_label if debug_label else '')
     for estimator_name, estimator in estimators.iteritems():
-        print '%sStarting %s' % (debug_label, estimator_name)
+        test_type = 'Repetitions' if repeat_test else 'Cross Evaluation'
+        print '%sStarting %s - %s' % (debug_label, estimator_name, test_type)
         feature_data = chw_data.get_features(num_x, col_select).drop(drop_cols)
         target_data = chw_data.get_targets(col_select)
-        score = cross_validate_score(estimator, feature_data, target_data,
-                                     test_data=test_data, cv=cross_folds)
-        accuracy_report_vals = (estimator_name, score.mean(), score.std())
-        print '%s Accuracy: %0.2f (+/- %0.3f)' % accuracy_report_vals
+        if not repeat_test:
+            score = cross_validate_score(estimator, feature_data,
+                                         target_data, cv=cross_folds)
+        else:
+            test_features = chw_data.get_features(col_select=col_select,
+                                                  exclude=True)
+            test_targets = chw_data.get_targets(col_select, exclude=True)
+            score = repeat_validate_score(estimator, feature_data, target_data,
+                                          test_features, test_targets)
+        accuracy_report = (' ' * 4, estimator_name, score.mean(), score.std())
+        print '%s%s Accuracy: %0.2f (+/- %0.3f)' % accuracy_report
         results.append((estimator_name, score))
     return results
 
@@ -127,26 +135,35 @@ def write_out_results(experiment, results, x_values, x_label, y_label,
         draw_graph(agg_scores, **config)
 
 
-def fit_and_score(estimator, feature_data, target_data, train_indices,
-                  test_indices, test_data=None):
-    features = feature_data.iloc[train_indices]
-    targets = target_data.iloc[train_indices]
-    estimator.fit(features, targets)
-
-    test_features = (test_data.features
-                     if test_data else feature_data).iloc[test_indices]
-    test_targets = (test_data.targets
-                    if test_data else target_data).iloc[test_indices]
+def fit_and_score(estimator, feature_data, target_data, train_indices=None,
+                  test_indices=None, test_features=None, test_targets=None):
+    if train_indices and test_indices:
+        train_features = feature_data.iloc[train_indices]
+        train_targets = target_data.iloc[train_indices]
+        estimator.fit(train_features, train_targets)
+        test_features = feature_data.iloc[test_indices]
+        test_targets = target_data.iloc[test_indices]
+    else:
+        estimator.fit(feature_data, target_data)
     return estimator.score(test_features, test_targets)
 
 
-def cross_validate_score(estimator, feature_data, target_data, test_data=None,
-                         cv=10):
+def repeat_validate_score(estimator, feature_data, target_data, test_features,
+                          test_targets, repetitions=5):
+    parallel = Parallel(n_jobs=-1)
+    scores = parallel(delayed(fit_and_score)(
+        clone(estimator), feature_data, target_data,
+        test_features=test_features, test_targets=test_targets)
+                      for i in range(repetitions))
+    return numpy.array(scores)
+
+
+def cross_validate_score(estimator, feature_data, target_data, cv=10):
     kfold = StratifiedKFold(n_splits=cv)
     parallel = Parallel(n_jobs=-1)
     split = kfold.split(feature_data, target_data)
     scores = parallel(delayed(fit_and_score)(
-        clone(estimator), feature_data, target_data, train, test, test_data)
+        clone(estimator), feature_data, target_data, train, test)
              for train, test in split)
     return numpy.array(scores)
 
@@ -175,8 +192,8 @@ def region_generalization_experiment():
 
     for country in countries:
         col_select = {country: 1}
-        result_scores = param_run(debug_label=country, cross_folds=10,
-                                  col_select=col_select, test_data=chw_data)
+        result_scores = param_run(debug_label=country, col_select=col_select,
+                                  repeat_test=True)
         for result in result_scores:
             name, val = result
             out_results[name].append(val)
@@ -192,8 +209,8 @@ def sector_generalization_experiment():
 
     for sector in sectors:
         col_select = {sector: 1}
-        result_scores = param_run(debug_label=sector, cross_folds=10,
-                                  col_select=col_select, test_data=chw_data)
+        result_scores = param_run(debug_label=sector, col_select=col_select,
+                                  repeat_test=True)
         for result in result_scores:
             name, val = result
             out_results[name].append(val)

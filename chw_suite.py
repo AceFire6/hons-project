@@ -220,16 +220,35 @@ def sector_generalization_experiment():
     write_out_results('sector', out_results, sectors, 'Sector', 'Accuracy')
 
 
+def project_generalization_experiment():
+    print_title('Running Project Generalization Experiment', '-')
+    project_codes = chw_data.get_column_values('projectCode', top_n=10)
+    out_results = {name: [] for name in estimators.keys()}
+
+    for project_code in project_codes:
+        col_select = {'projectCode': project_code}
+        result_scores = param_run(debug_label=project_code,
+                                  col_select=col_select, repeat_test=True)
+        for result in result_scores:
+            name, val = result
+            out_results[name].append(val)
+
+    write_out_results('project', out_results, project_codes.keys(),
+                      'Project', 'Accuracy')
+
+
 if __name__ == '__main__':
     experiments = [
         '0. Effect of Number of Days Included (1-90)',
         '1. Ability to Generalize Region Data',
         '2. Ability to Generalize Sector Data',
+        '3. Ability to Generalize Project Data',
     ]
     experiment_functions = [
         effect_of_day_data_experiment,
         region_generalization_experiment,
         sector_generalization_experiment,
+        project_generalization_experiment,
     ]
 
     parser = argparse.ArgumentParser()

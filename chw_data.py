@@ -38,6 +38,7 @@ class CHWData(object):
 
         if categorical_features:
             number_features = features.difference(new_categorical_features)
+            self.categorical_cols = new_categorical_features
             dataset[number_features] = normalize(dataset[number_features])
 
         if assign:
@@ -67,15 +68,15 @@ class CHWData(object):
     def features_m(self):
         return self.features.as_matrix()
 
-    def get_features(self, x_num=90, col_select=None, as_matrix=False,
-                     exclude=False):
-        feats = self.features
-        indices = self.get_indices(col_select or {}, exclude)
+    def get_features(self, x_num=90, col_filter=None, as_matrix=False,
+                     exclude=False, drop_cols=list()):
+        features = self.features
+        indices = self.get_indices(col_filter or {}, exclude)
         if not indices.empty:
-            feats = feats[indices]
-        x_labels = self._get_x_labels(x_num)
-        feats = feats.drop(x_labels, axis=1)
-        return feats.as_matrix() if as_matrix else feats
+            features = features[indices]
+        drop_cols = drop_cols + self._get_x_labels(x_num)
+        features = features.drop(drop_cols, axis=1)
+        return features.as_matrix() if as_matrix else features
 
     @property
     def targets(self):
@@ -85,9 +86,9 @@ class CHWData(object):
     def targets_m(self):
         return self.targets.as_matrix()
 
-    def get_targets(self, col_select=None, as_matrix=False, exclude=False):
+    def get_targets(self, col_filter=None, as_matrix=False, exclude=False):
         targets = self.targets
-        indices = self.get_indices(col_select or {}, exclude)
+        indices = self.get_indices(col_filter or {}, exclude)
         if not indices.empty:
             targets = targets[indices]
         return targets.as_matrix() if as_matrix else targets

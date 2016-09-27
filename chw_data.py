@@ -21,9 +21,8 @@ class CHWData(object):
 
     def _process_dataset(self, label, assign=True, drop_cols=list(),
                          categorical_features=list()):
-        dataset = self._dataset.drop(drop_cols, axis=1)
-
-        features = dataset.columns.drop(label)
+        dataset = self._dataset
+        features = dataset.columns.drop(drop_cols + [label])
 
         new_categorical_features = []
         for feature in categorical_features:
@@ -103,3 +102,12 @@ class CHWData(object):
             else:
                 results = results.append(self.dataset[key] == val)
         return results
+
+    def get_column_values(self, columns, top_n=None, occurance_min=None):
+        grouped_columns = self.dataset.groupby(columns).size()
+        if occurance_min:
+            return grouped_columns[grouped_columns >= occurance_min].to_dict()
+        elif top_n:
+            sorted_groups = grouped_columns.sort_values(ascending=False)
+            return sorted_groups.iloc[range(top_n)].to_dict()
+        return grouped_columns.to_dict()

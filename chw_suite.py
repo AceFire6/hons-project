@@ -137,7 +137,7 @@ def write_out_results(experiment, results, x_values, x_label, y_label,
 
 def fit_and_score(estimator, feature_data, target_data, train_indices=None,
                   test_indices=None, test_features=None, test_targets=None):
-    if train_indices and test_indices:
+    if (train_indices is not None) and (test_indices is not None):
         train_features = feature_data.iloc[train_indices]
         train_targets = target_data.iloc[train_indices]
         estimator.fit(train_features, train_targets)

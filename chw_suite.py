@@ -28,13 +28,14 @@ def param_run(debug_label=None, num_x=90, cross_folds=10, col_select=None,
     for estimator_name, estimator in estimators.iteritems():
         test_type = 'Repetitions' if repeat_test else 'Cross Evaluation'
         print '%sStarting %s - %s' % (debug_label, estimator_name, test_type)
-        feature_data = chw_data.get_features(num_x, col_select).drop(drop_cols)
+        feature_data = chw_data.get_features(num_x, col_select,
+                                             drop_cols=drop_cols)
         target_data = chw_data.get_targets(col_select)
         if not repeat_test:
             score = cross_validate_score(estimator, feature_data,
                                          target_data, cv=cross_folds)
         else:
-            test_features = chw_data.get_features(col_select=col_select,
+            test_features = chw_data.get_features(col_filter=col_select,
                                                   exclude=True)
             test_targets = chw_data.get_targets(col_select, exclude=True)
             score = repeat_validate_score(estimator, feature_data, target_data,
@@ -174,7 +175,8 @@ def effect_of_day_data_experiment():
     # Go through all values of X (1-90)
     x_val_range = range(1, 91)
     for x in x_val_range:
-        result_scores = param_run(debug_label=x, num_x=x, cross_folds=10)
+        result_scores = param_run(debug_label=x, num_x=x, cross_folds=10,
+                                  drop_cols=chw_data.categorical_cols)
         for result in result_scores:
             name, val = result
             out_results[name].append(val)

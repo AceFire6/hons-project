@@ -21,8 +21,7 @@ class CHWData(object):
 
     def _process_dataset(self, label, assign=True, drop_cols=list(),
                          categorical_features=list()):
-        dataset = self._dataset
-        dataset.drop(drop_cols, axis=1, inplace=True)
+        dataset = self._dataset.drop(drop_cols, axis=1)
 
         features = dataset.columns.drop(label)
 

@@ -233,7 +233,7 @@ def project_generalization_experiment():
             name, val = result
             out_results[name].append(val)
 
-    write_out_results('project', out_results, project_codes.keys(),
+    write_out_results('project', out_results, map(str, project_codes.keys()),
                       'Project', 'Accuracy')
 
 

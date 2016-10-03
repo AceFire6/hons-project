@@ -182,7 +182,7 @@ def effect_of_day_data_experiment():
             out_results[name].append(val)
 
     write_out_results('xvals', out_results, x_val_range,
-                      'Number of days included', 'Accuracy')
+                      'Number of days included', 'Accuracy', draw=args.graph)
 
 
 def region_generalization_experiment():
@@ -200,7 +200,8 @@ def region_generalization_experiment():
             name, val = result
             out_results[name].append(val)
     countries = get_short_codes(countries)
-    write_out_results('region', out_results, countries, 'Country', 'Accuracy')
+    write_out_results('region', out_results, countries, 'Country', 'Accuracy',
+                      draw=args.graph)
 
 
 def sector_generalization_experiment():
@@ -217,7 +218,8 @@ def sector_generalization_experiment():
             name, val = result
             out_results[name].append(val)
 
-    write_out_results('sector', out_results, sectors, 'Sector', 'Accuracy')
+    write_out_results('sector', out_results, sectors, 'Sector', 'Accuracy',
+                      draw=args.graph)
 
 
 def project_generalization_experiment():
@@ -234,7 +236,7 @@ def project_generalization_experiment():
             out_results[name].append(val)
 
     write_out_results('project', out_results, map(str, project_codes.keys()),
-                      'Project', 'Accuracy')
+                      'Project', 'Accuracy', draw=args.graph)
 
 
 if __name__ == '__main__':
@@ -255,8 +257,10 @@ if __name__ == '__main__':
     parser.add_argument('-e', '--experiment', dest='experiments', type=int,
                         nargs='*', choices=range(len(experiments)),
                         help='Choose which experiments to run as list',)
-    parser.add_argument('-g', '--graph', dest='graph_file', type=str,
-                        help='Graph values from experiment',)
+    parser.add_argument('-g', '--graph', dest='graph', action='store_true',
+                        help='Graph values from experiment', )
+    parser.add_argument('-f', '--file', dest='file', type=str,
+                        help='Specify the file to graph. Used with -g.',)
     parser.add_argument('-x', dest='x_ticks', type=int, nargs='*',
                         help='Select which x axis features to show by index',)
     parser.add_argument('-s', '--split', action='store_true',
@@ -295,13 +299,18 @@ if __name__ == '__main__':
     if args.list:
         print_title('All Experiments:', '-')
         print '\n'.join(experiments)
-    elif args.graph_file:
-        print 'Drawing graph: %s' % args.graph_file
-        draw_graph_from_file(args.graph_file, args.split)
-    elif not args.experiments:
-        print_title('Running All Experiments', '=')
-        map(lambda func: func(), experiment_functions)
+    elif args.graph and args.file:
+        print 'Drawing graph: %s' % args.file
+        draw_graph_from_file(args.file, args.split)
     elif args.experiments:
         for exp_no in range(len(experiment_functions)):
             if exp_no in args.experiments:
                 experiment_functions[exp_no]()
+    elif args.experiments is not None:
+        print_title('Running All Experiments', '=')
+        map(lambda func: func(), experiment_functions)
+    elif args.graph:
+        print 'Nothing to graph. No file or experiment specified.'
+    else:
+        print 'No action specified. ' \
+              'Run `python %s -l` to see all actions.' % __file__

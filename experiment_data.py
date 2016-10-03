@@ -3,7 +3,7 @@ from pandas import DataFrame
 from sklearn.preprocessing import normalize
 
 
-class CHWData(object):
+class ExperimentData(object):
     def __init__(self, file_name, label='', drop_cols=list(),
                  categorical_features=list()):
         self._file_name = file_name
@@ -11,7 +11,7 @@ class CHWData(object):
         self._features = self._dataset.columns
         self._processed_dataset = None
         self.drop_cols = drop_cols
-        self.categorical_cols = categorical_features
+        self.categories = categorical_features
         self.label = label
         if label:
             self._process_dataset(label, True, drop_cols, categorical_features)
@@ -33,7 +33,7 @@ class CHWData(object):
 
         if categorical_features:
             number_features = features.difference(new_categorical_features)
-            self.categorical_cols = new_categorical_features
+            self.categories = new_categorical_features
             dataset[number_features] = normalize(dataset[number_features])
 
         if assign:
@@ -63,13 +63,12 @@ class CHWData(object):
     def features_m(self):
         return self.features.as_matrix()
 
-    def get_features(self, x_num=90, col_filter=None, as_matrix=False,
+    def get_features(self, col_filter=None, as_matrix=False,
                      exclude=False, drop_cols=list()):
         features = self.features
         indices = self.get_indices(col_filter or {}, exclude)
         if not indices.empty:
             features = features[indices]
-        drop_cols = drop_cols + self._get_x_labels(x_num)
         features = features.drop(drop_cols, axis=1)
         return features.as_matrix() if as_matrix else features
 
@@ -87,9 +86,6 @@ class CHWData(object):
         if not indices.empty:
             targets = targets[indices]
         return targets.as_matrix() if as_matrix else targets
-
-    def _get_x_labels(self, num_x):
-        return ['X%d' % (i + 1) for i in range(90)][num_x:]
 
     def get_indices(self, col_select, exclude=False):
         results = pandas.Series()

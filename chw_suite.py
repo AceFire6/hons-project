@@ -3,7 +3,7 @@ from datetime import datetime
 import itertools
 import json
 
-from chw_data import CHWData
+from experiment_data import ExperimentData
 from util import (generate_n_rgb_colours, get_short_codes, list_index,
                   print_title, round_up)
 
@@ -21,23 +21,17 @@ from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
 
 
-def param_run(debug_label=None, num_x=90, cross_folds=10, col_select=None,
-              drop_cols=list(), repeat_test=False):
+def param_run(feature_data, target_data, test_features=None, test_targets=None,
+              debug_label=None, cross_folds=10, repeat_test=False):
     results = []
     debug_label = '[{}] '.format(debug_label) if debug_label else ''
     for estimator_name, estimator in estimators.iteritems():
         test_type = 'Repetitions' if repeat_test else 'Cross Evaluation'
         print '%sStarting %s - %s' % (debug_label, estimator_name, test_type)
-        feature_data = chw_data.get_features(num_x, col_select,
-                                             drop_cols=drop_cols)
-        target_data = chw_data.get_targets(col_select)
         if not repeat_test:
             score = cross_validate_score(estimator, feature_data,
                                          target_data, cv=cross_folds)
         else:
-            test_features = chw_data.get_features(col_filter=col_select,
-                                                  exclude=True)
-            test_targets = chw_data.get_targets(col_select, exclude=True)
             score = repeat_validate_score(estimator, feature_data, target_data,
                                           test_features, test_targets)
         accuracy_report = (' ' * 4, estimator_name, score.mean(), score.std())
@@ -175,8 +169,10 @@ def effect_of_day_data_experiment():
     # Go through all values of X (1-90)
     x_val_range = range(1, 91)
     for x in x_val_range:
-        result_scores = param_run(debug_label=x, num_x=x, cross_folds=10,
-                                  drop_cols=chw_data.categorical_cols)
+        feature_data = chw_data.get_features(x, drop_cols=chw_data.categories)
+        target_data = chw_data.get_targets()
+        result_scores = param_run(feature_data, target_data,
+                                  debug_label=x, cross_folds=10)
         for result in result_scores:
             name, val = result
             out_results[name].append(val)
@@ -194,8 +190,15 @@ def region_generalization_experiment():
 
     for country in countries:
         col_select = {country: 1}
-        result_scores = param_run(debug_label=country, col_select=col_select,
-                                  repeat_test=True)
+        feature_data = chw_data.get_features(col_select)
+        target_data = chw_data.get_targets(col_select)
+        test_features = chw_data.get_features(col_filter=col_select,
+                                              exclude=True)
+        test_targets = chw_data.get_targets(col_select, exclude=True)
+        result_scores = param_run(feature_data, target_data,
+                                  test_features=test_features,
+                                  test_targets=test_targets,
+                                  debug_label=country, repeat_test=True)
         for result in result_scores:
             name, val = result
             out_results[name].append(val)
@@ -212,8 +215,15 @@ def sector_generalization_experiment():
 
     for sector in sectors:
         col_select = {sector: 1}
-        result_scores = param_run(debug_label=sector, col_select=col_select,
-                                  repeat_test=True)
+        feature_data = chw_data.get_features(col_select)
+        target_data = chw_data.get_targets(col_select)
+        test_features = chw_data.get_features(col_filter=col_select,
+                                              exclude=True)
+        test_targets = chw_data.get_targets(col_select, exclude=True)
+        result_scores = param_run(feature_data, target_data,
+                                  test_features=test_features,
+                                  test_targets=test_targets,
+                                  debug_label=sector, repeat_test=True)
         for result in result_scores:
             name, val = result
             out_results[name].append(val)
@@ -229,8 +239,15 @@ def project_generalization_experiment():
 
     for project_code in project_codes:
         col_select = {'projectCode': project_code}
-        result_scores = param_run(debug_label=project_code,
-                                  col_select=col_select, repeat_test=True)
+        feature_data = chw_data.get_features(col_select)
+        target_data = chw_data.get_targets(col_select)
+        test_features = chw_data.get_features(col_filter=col_select,
+                                              exclude=True)
+        test_targets = chw_data.get_targets(col_select, exclude=True)
+        result_scores = param_run(feature_data, target_data,
+                                  test_features=test_features,
+                                  test_targets=test_targets,
+                                  debug_label=project_code, repeat_test=True)
         for result in result_scores:
             name, val = result
             out_results[name].append(val)
@@ -279,8 +296,8 @@ if __name__ == '__main__':
     drop_features = ['projectCode', 'userCode']
     categorical_features = ['country', 'sector']
 
-    chw_data = CHWData('chw_data.csv', label, drop_features,
-                       categorical_features)
+    chw_data = ExperimentData('chw_data.csv', label, drop_features,
+                              categorical_features)
 
     tree = DecisionTreeClassifier()
     forest = RandomForestClassifier()

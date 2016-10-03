@@ -21,11 +21,10 @@ def print_title(title, underline=''):
 
 def list_index(indices, *select_lists):
     return_lists = list(select_lists)
-    if not select_lists or not indices:
-        return return_lists if len(return_lists) > 1 else return_lists[0]
-    for i in range(len(select_lists)):
-        return_lists[i] = [select_lists[i][index] for index in indices]
-    return return_lists
+    if select_lists and indices:
+        for i in range(len(select_lists)):
+            return_lists[i] = [select_lists[i][index] for index in indices]
+    return return_lists if len(return_lists) > 1 else return_lists[0]
 
 
 def get_short_codes(countries):

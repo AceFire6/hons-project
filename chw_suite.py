@@ -24,7 +24,7 @@ from sklearn.tree import DecisionTreeClassifier
 def param_run(debug_label=None, num_x=90, cross_folds=10, col_select=None,
               drop_cols=list(), repeat_test=False):
     results = []
-    debug_label = '[{}] '.format(debug_label if debug_label else '')
+    debug_label = '[{}] '.format(debug_label) if debug_label else ''
     for estimator_name, estimator in estimators.iteritems():
         test_type = 'Repetitions' if repeat_test else 'Cross Evaluation'
         print '%sStarting %s - %s' % (debug_label, estimator_name, test_type)

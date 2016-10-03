@@ -78,7 +78,7 @@ def draw_graph(graph_scores, x_values, y_lim=(0, 1), x_lim=None, y_label='',
     plt.clf()
 
 
-def draw_graph_from_file(experiment, split=False, x_ticks=None):
+def draw_graph_from_file(experiment, split=False, x_ticks=list()):
     file_scores = {}
     with open('%s-config.json' % experiment) as config_file:
         config = json.loads(config_file.readline())
@@ -89,8 +89,8 @@ def draw_graph_from_file(experiment, split=False, x_ticks=None):
     for x in x_ticks:
         if x < 0 or x > x_len:
             sys.exit('x_tick index: %d out of x_value range 0-%d' % (x, x_len))
-
-    print 'Drawing graph for %s' % args.file
+    config['x_tick_indices'] = x_ticks
+    print 'Drawing graph for %s' % experiment
 
     for classifier, scores in results.iteritems():
         file_scores[classifier] = [[], []]
@@ -109,7 +109,7 @@ def draw_graph_from_file(experiment, split=False, x_ticks=None):
 
 
 def write_out_results(experiment, results, x_values, x_label, y_label,
-                      file_name=None, draw=True):
+                      file_name=None, draw=False):
     date = datetime.utcnow().replace(microsecond=0).isoformat()
     file_name = file_name or '%s-%s-graph.png' % (experiment, date)
 
@@ -275,10 +275,8 @@ if __name__ == '__main__':
     parser.add_argument('-e', '--experiment', dest='experiments', type=int,
                         nargs='*', choices=range(len(experiments)),
                         help='Choose which experiments to run as list',)
-    parser.add_argument('-g', '--graph', dest='graph', action='store_true',
-                        help='Graph values from experiment', )
-    parser.add_argument('-f', '--file', dest='file', type=str,
-                        help='Specify the file to graph. Used with -g.',)
+    parser.add_argument('-g', '--graph', dest='graph', nargs='?',
+                        default=False, help='Graph values from experiment')
     parser.add_argument('-x', dest='x_ticks', type=int, nargs='*',
                         help='Select which x axis features to show by index',)
     parser.add_argument('-s', '--split', action='store_true',
@@ -303,7 +301,7 @@ if __name__ == '__main__':
     tree = DecisionTreeClassifier()
     forest = RandomForestClassifier()
     svm = SVC()
-    nn = MLPClassifier(hidden_layer_sizes=(50,), max_iter=500)
+    nn = MLPClassifier(hidden_layer_sizes=(50,), max_iter=1000)
 
     estimators = {
         'Decision_Tree': tree,
@@ -317,9 +315,10 @@ if __name__ == '__main__':
     if args.list:
         print_title('All Experiments:', '-')
         print '\n'.join(experiments)
-    elif args.graph and args.file:
-        draw_graph_from_file(args.file, args.split, args.x_ticks)
+    elif args.graph:
+        draw_graph_from_file(args.graph, args.split, args.x_ticks)
     elif args.experiments:
+        args.graph = args.graph is None
         for exp_no in range(len(experiment_functions)):
             if exp_no in args.experiments:
                 experiment_functions[exp_no]()

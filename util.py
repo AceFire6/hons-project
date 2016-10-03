@@ -1,6 +1,5 @@
 import colorsys
 import math
-from warnings import filterwarnings
 
 import numpy
 import pycountry
@@ -38,10 +37,3 @@ def get_short_codes(countries):
                     codes.append(c.alpha3)
                     continue
     return codes
-
-
-def filter_warnings():
-    # Preserve output sanity.
-    # These warnings don't affect anything and are unnecessary.
-    filterwarnings('ignore', 'numpy not_equal will not check object')
-    filterwarnings('ignore', 'downsample module has been moved to')

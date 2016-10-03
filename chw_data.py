@@ -1,5 +1,3 @@
-from util import filter_warnings
-
 import pandas
 from pandas import DataFrame
 from sklearn.preprocessing import normalize
@@ -8,7 +6,6 @@ from sklearn.preprocessing import normalize
 class CHWData(object):
     def __init__(self, file_name, label='', drop_cols=list(),
                  categorical_features=list()):
-        filter_warnings()
         self._file_name = file_name
         self._dataset = DataFrame.from_csv(file_name)
         self._features = self._dataset.columns

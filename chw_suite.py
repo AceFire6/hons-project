@@ -2,6 +2,7 @@ import argparse
 from datetime import datetime
 import itertools
 import json
+import sys
 
 from experiment_data import ExperimentData
 from util import (generate_n_rgb_colours, get_short_codes, list_index,
@@ -41,8 +42,7 @@ def param_run(feature_data, target_data, test_features=None, test_targets=None,
 
 
 def draw_graph(graph_scores, x_values, y_lim=(0, 1), x_lim=None, y_label='',
-               x_label='', file_name='', grid=True):
-    min_err = 0.02
+               x_label='', x_tick_indices=None, file_name='', grid=True):
     legend = []
 
     x_range = x_values
@@ -50,27 +50,21 @@ def draw_graph(graph_scores, x_values, y_lim=(0, 1), x_lim=None, y_label='',
         x_range = range(1, len(x_values) + 1)
         x_lim = x_lim or (0, round_up(len(x_range)))
 
-    x_ticks = args.x_ticks
-    x_range = list_index(x_range, x_ticks)
-
+    x_range = list_index(x_tick_indices, x_range)
     x_lim = x_lim or (0, round_up(x_range[-1]))
 
     plt.ioff()
     plt.grid(grid)
     for graph_label, graph_vals in graph_scores.iteritems():
-        y_vals, y_err = graph_vals
-        y_err = y_err if any(map(lambda x: x > min_err, y_err)) else None
-        if args.x_ticks:
-            y_vals = list_index(y_vals, x_ticks)
-            y_err = list_index(y_err, x_ticks)
+        y_vals, y_err = list_index(x_tick_indices, *graph_vals)
         plt.errorbar(x_range, y_vals, yerr=y_err, fmt=next(styles),
                      c=next(colours), linewidth=1.5, markersize=7,
                      markeredgewidth=1)
         legend.append(graph_label.replace('_', ' '))
 
     plt.gca().yaxis.set_major_locator(MultipleLocator(base=0.1))
-    if args.x_ticks or type(x_values[0]) not in [int, float]:
-        labels = list_index(x_values, x_ticks)
+    if x_tick_indices or type(x_values[0]) not in [int, float]:
+        labels = list_index(x_tick_indices, x_values)
         plt.xticks(x_range, labels)
     else:
         plt.gca().xaxis.set_major_locator(MultipleLocator(base=1.0))
@@ -84,12 +78,19 @@ def draw_graph(graph_scores, x_values, y_lim=(0, 1), x_lim=None, y_label='',
     plt.clf()
 
 
-def draw_graph_from_file(experiment, split=False):
+def draw_graph_from_file(experiment, split=False, x_ticks=None):
     file_scores = {}
     with open('%s-config.json' % experiment) as config_file:
         config = json.loads(config_file.readline())
 
     results = config.pop('results', [])
+
+    x_len = len(config['x_values'])
+    for x in x_ticks:
+        if x < 0 or x > x_len:
+            sys.exit('x_tick index: %d out of x_value range 0-%d' % (x, x_len))
+
+    print 'Drawing graph for %s' % args.file
 
     for classifier, scores in results.iteritems():
         file_scores[classifier] = [[], []]
@@ -302,7 +303,7 @@ if __name__ == '__main__':
     tree = DecisionTreeClassifier()
     forest = RandomForestClassifier()
     svm = SVC()
-    nn = MLPClassifier(hidden_layer_sizes=(50,))
+    nn = MLPClassifier(hidden_layer_sizes=(50,), max_iter=500)
 
     estimators = {
         'Decision_Tree': tree,
@@ -317,8 +318,7 @@ if __name__ == '__main__':
         print_title('All Experiments:', '-')
         print '\n'.join(experiments)
     elif args.graph and args.file:
-        print 'Drawing graph: %s' % args.file
-        draw_graph_from_file(args.file, args.split)
+        draw_graph_from_file(args.file, args.split, args.x_ticks)
     elif args.experiments:
         for exp_no in range(len(experiment_functions)):
             if exp_no in args.experiments:

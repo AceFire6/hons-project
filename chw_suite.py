@@ -183,7 +183,8 @@ def effect_of_day_data_experiment():
 
 
 def country_to_all_generalization_experiment(inverse=False):
-    print_title('Running Region Generalization Experiment', '-')
+    inverse = (inverse and 'Inverse ') or ''
+    print_title('Running {}Region Generalization Experiment', '-', inverse)
     region_data_size = 500
     countries = [key for key, val in chw_data.country.iteritems()
                  if val > region_data_size]
@@ -216,7 +217,8 @@ def all_to_country_generalization_experiment():
 
 
 def sector_to_all_generalization_experiment(inverse=False):
-    print_title('Running Country Generalization Experiment', '-')
+    inverse = (inverse and 'Inverse ') or ''
+    print_title('Running {}Country Generalization Experiment', '-', inverse)
     sectors = set(chw_data.sector)
     sectors = [sector for sector in sectors if type(sector) == str]
     out_results = {name: [] for name in estimators.keys()}
@@ -248,7 +250,8 @@ def all_to_sector_generalization_experiment():
 
 
 def project_to_all_generalization_experiment(inverse=False):
-    print_title('Running Project Generalization Experiment', '-')
+    inverse = (inverse and 'Inverse ') or ''
+    print_title('Running {}Project Generalization Experiment', '-', inverse)
     project_codes = chw_data.get_column_values('projectCode', top_n=10)
     out_results = {name: [] for name in estimators.keys()}
 

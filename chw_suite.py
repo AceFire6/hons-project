@@ -182,7 +182,7 @@ def effect_of_day_data_experiment():
                       'Number of days included', 'Accuracy', draw=args.graph)
 
 
-def region_generalization_experiment():
+def country_to_all_generalization_experiment(inverse=False):
     print_title('Running Region Generalization Experiment', '-')
     region_data_size = 500
     countries = [key for key, val in chw_data.country.iteritems()
@@ -196,6 +196,8 @@ def region_generalization_experiment():
         test_features = chw_data.get_features(col_filter=col_select,
                                               exclude=True)
         test_targets = chw_data.get_targets(col_select, exclude=True)
+        if inverse:
+            feature_data, target_data = test_features, test_targets
         result_scores = param_run(feature_data, target_data,
                                   test_features=test_features,
                                   test_targets=test_targets,
@@ -204,12 +206,17 @@ def region_generalization_experiment():
             name, val = result
             out_results[name].append(val)
     countries = get_short_codes(countries)
-    write_out_results('region', out_results, countries, 'Country', 'Accuracy',
+    experiment = 'country' + ('_inverse' if inverse else '')
+    write_out_results(experiment, out_results, countries, 'Country', 'Accuracy',
                       draw=args.graph)
 
 
-def sector_generalization_experiment():
-    print_title('Running Region Generalization Experiment', '-')
+def all_to_country_generalization_experiment():
+    country_to_all_generalization_experiment(True)
+
+
+def sector_to_all_generalization_experiment(inverse=False):
+    print_title('Running Country Generalization Experiment', '-')
     sectors = set(chw_data.sector)
     sectors = [sector for sector in sectors if type(sector) == str]
     out_results = {name: [] for name in estimators.keys()}
@@ -221,6 +228,8 @@ def sector_generalization_experiment():
         test_features = chw_data.get_features(col_filter=col_select,
                                               exclude=True)
         test_targets = chw_data.get_targets(col_select, exclude=True)
+        if inverse:
+            feature_data, target_data = test_features, test_targets
         result_scores = param_run(feature_data, target_data,
                                   test_features=test_features,
                                   test_targets=test_targets,
@@ -229,11 +238,16 @@ def sector_generalization_experiment():
             name, val = result
             out_results[name].append(val)
 
-    write_out_results('sector', out_results, sectors, 'Sector', 'Accuracy',
+    experiment = 'sector' + ('_inverse' if inverse else '')
+    write_out_results(experiment, out_results, sectors, 'Sector', 'Accuracy',
                       draw=args.graph)
 
 
-def project_generalization_experiment():
+def all_to_sector_generalization_experiment():
+    sector_to_all_generalization_experiment(True)
+
+
+def project_to_all_generalization_experiment(inverse=False):
     print_title('Running Project Generalization Experiment', '-')
     project_codes = chw_data.get_column_values('projectCode', top_n=10)
     out_results = {name: [] for name in estimators.keys()}
@@ -245,6 +259,8 @@ def project_generalization_experiment():
         test_features = chw_data.get_features(col_filter=col_select,
                                               exclude=True)
         test_targets = chw_data.get_targets(col_select, exclude=True)
+        if inverse:
+            feature_data, target_data = test_features, test_targets
         result_scores = param_run(feature_data, target_data,
                                   test_features=test_features,
                                   test_targets=test_targets,
@@ -253,22 +269,33 @@ def project_generalization_experiment():
             name, val = result
             out_results[name].append(val)
 
-    write_out_results('project', out_results, map(str, project_codes.keys()),
+    experiment = 'project' + ('_inverse' if inverse else '')
+    write_out_results(experiment, out_results, map(str, project_codes.keys()),
                       'Project', 'Accuracy', draw=args.graph)
+
+
+def all_to_project_generalization_experiment():
+    project_to_all_generalization_experiment(True)
 
 
 if __name__ == '__main__':
     experiments = [
         '0. Effect of Number of Days Included (1-90)',
-        '1. Ability to Generalize Region Data',
-        '2. Ability to Generalize Sector Data',
-        '3. Ability to Generalize Project Data',
+        '1. Ability to Generalize Country Data',
+        '2. Ability to Generalize Data to Country',
+        '3. Ability to Generalize Sector Data',
+        '4. Ability to Generalize Data to Sector',
+        '5. Ability to Generalize Project Data',
+        '6. Ability to Generalize Data to Project',
     ]
     experiment_functions = [
         effect_of_day_data_experiment,
-        region_generalization_experiment,
-        sector_generalization_experiment,
-        project_generalization_experiment,
+        country_to_all_generalization_experiment,
+        all_to_country_generalization_experiment,
+        sector_to_all_generalization_experiment,
+        all_to_sector_generalization_experiment,
+        project_to_all_generalization_experiment,
+        all_to_project_generalization_experiment,
     ]
 
     parser = argparse.ArgumentParser()

@@ -15,7 +15,9 @@ def round_up(x, nearest=1):
     return int(nearest * math.ceil(float(x) / nearest))
 
 
-def print_title(title, underline=''):
+def print_title(title, underline='', format_dict=None):
+    if format_dict is not None:
+        title = title.format(format_dict)
     print '%s\n%s' % (title, underline * len(title))
 
 

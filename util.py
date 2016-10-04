@@ -10,6 +10,15 @@ def generate_n_rgb_colours(n, saturation=0.34, value=0.58):
     return [colorsys.hsv_to_rgb(hue, saturation, value) for hue in hues]
 
 
+def get_split_and_balance(train_targets, test_targets):
+    train_n, test_n = len(train_targets), len(test_targets)
+    train_tally = train_targets.value_counts()
+    test_tally = test_targets.value_counts()
+    return {'train_n': train_n, 'test_n': test_n,
+            'pos_train': train_tally[True], 'neg_train': train_tally[False],
+            'pos_test': test_tally[True], 'neg_test': test_tally[False]}
+
+
 def round_up(x, nearest=1):
     x = x + 1 if x % nearest == 0 else x
     return int(nearest * math.ceil(float(x) / nearest))

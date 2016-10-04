@@ -1,4 +1,5 @@
 *.pyc
 chw_data.csv
 *-config.json
+*-info.txt
 *.png

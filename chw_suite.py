@@ -5,15 +5,14 @@ import json
 import sys
 
 from experiment_data import ExperimentData
-from util import (generate_n_rgb_colours, get_short_codes, list_index,
-                  print_title, round_up)
+from util import (generate_n_rgb_colours, get_short_codes,
+                  get_split_and_balance, list_index, print_title, round_up)
 
 from joblib import Parallel, delayed
 import matplotlib
 from matplotlib.ticker import MultipleLocator
 import matplotlib.pyplot as plt
 import numpy
-from numpy import ndarray
 from sklearn import clone
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import StratifiedKFold
@@ -24,20 +23,27 @@ from sklearn.tree import DecisionTreeClassifier
 
 def param_run(feature_data, target_data, test_features=None, test_targets=None,
               debug_label=None, cross_folds=10, repeat_test=False):
-    results = []
-    debug_label = '[{}] '.format(debug_label) if debug_label else ''
+    results = {'values': []}
+    test_type = 'Repetitions' if repeat_test else 'Cross Evaluation'
+    debug_str = '[{}] '.format(debug_label) if debug_label else ''
+    info_vals = get_split_and_balance(target_data, test_targets)
+    info_str = ('{}[N-train: {train_n} | N-test: {test_n} | Balance(+/-): '
+                'Train {pos_train}/{neg_train} - Test {pos_test}/{neg_test}]')
+    print info_str.format(debug_str, **info_vals)
+    info_vals['label'] = debug_label
+    results['stats'] = info_vals
+
     for estimator_name, estimator in estimators.iteritems():
-        test_type = 'Repetitions' if repeat_test else 'Cross Evaluation'
-        print '%sStarting %s - %s' % (debug_label, estimator_name, test_type)
+        print '\tStarting %s - %s' % (estimator_name, test_type)
         if not repeat_test:
             score = cross_validate_score(estimator, feature_data,
                                          target_data, cv=cross_folds)
         else:
             score = repeat_validate_score(estimator, feature_data, target_data,
                                           test_features, test_targets)
-        accuracy_report = (' ' * 4, estimator_name, score.mean(), score.std())
-        print '%s%s Accuracy: %0.2f (+/- %0.3f)' % accuracy_report
-        results.append((estimator_name, score))
+        accuracy_report = (estimator_name, score.mean(), score.std())
+        print '\t\t%s Accuracy: %0.2f (+/- %0.3f)' % accuracy_report
+        results['values'].append((estimator_name, score))
     return results
 
 
@@ -118,16 +124,26 @@ def write_out_results(experiment, results, x_values, x_label, y_label,
         'x_label': x_label,
     }
 
-    results_list = {n: map(ndarray.tolist, results[n]) for n in results}
+    results_list = {}
+    with open('%s-%s-info.txt' % (experiment, date), 'w') as info_file:
+        for result in results:
+            expr_label = '%s - ' % result['stats'].pop('label')
+            info_file.write(expr_label + json.dumps(result['stats']) + '\n')
+            for estimator, array in result['values']:
+                if estimator in results_list:
+                    results_list[estimator].append(array.tolist())
+                else:
+                    results_list[estimator] = [array.tolist()]
+
     with open('%s-%s-config.json' % (experiment, date), 'w') as config_file:
         config_file.write(json.dumps(dict(config, results=results_list)))
 
     if draw:
-        agg_scores = {i: [[], []] for i in results.keys()}
-        for name, values in results.iteritems():
-            for val in values:
-                agg_scores[name][0].append(val.mean())
-                agg_scores[name][1].append(val.std())
+        agg_scores = {i: [[], []] for i in results_list.keys()}
+        for result in results:
+            for name, values in result['values']:
+                agg_scores[name][0].append(values.mean())
+                agg_scores[name][1].append(values.std())
         draw_graph(agg_scores, **config)
 
 
@@ -166,7 +182,7 @@ def cross_validate_score(estimator, feature_data, target_data, cv=10):
 
 def effect_of_day_data_experiment():
     print_title('Running Effect of Day Experiment', '-')
-    out_results = {i: [] for i in estimators.keys()}
+    out_results = []
     # Go through all values of X (1-90)
     x_val_range = range(1, 91)
     for x in x_val_range:
@@ -174,10 +190,7 @@ def effect_of_day_data_experiment():
         target_data = chw_data.get_targets()
         result_scores = param_run(feature_data, target_data,
                                   debug_label=x, cross_folds=10)
-        for result in result_scores:
-            name, val = result
-            out_results[name].append(val)
-
+        out_results.append(result_scores)
     write_out_results('xvals', out_results, x_val_range,
                       'Number of days included', 'Accuracy', draw=args.graph)
 
@@ -188,7 +201,7 @@ def country_to_all_generalization_experiment(inverse=False):
     region_data_size = 500
     countries = [key for key, val in chw_data.country.iteritems()
                  if val > region_data_size]
-    out_results = {name: [] for name in estimators.keys()}
+    out_results = []
 
     for country in countries:
         col_select = {country: 1}
@@ -207,9 +220,7 @@ def country_to_all_generalization_experiment(inverse=False):
                                       test_features=feature_data,
                                       test_targets=target_data,
                                       debug_label=country, repeat_test=True)
-        for result in result_scores:
-            name, val = result
-            out_results[name].append(val)
+        out_results.append(result_scores)
     countries = get_short_codes(countries)
     experiment = 'country' + ('_inverse' if inverse else '')
     write_out_results(experiment, out_results, countries, 'Country', 'Accuracy',
@@ -225,7 +236,7 @@ def sector_to_all_generalization_experiment(inverse=False):
     print_title('Running {}Country Generalization Experiment', '-', inverse)
     sectors = set(chw_data.sector)
     sectors = [sector for sector in sectors if type(sector) == str]
-    out_results = {name: [] for name in estimators.keys()}
+    out_results = []
 
     for sector in sectors:
         col_select = {sector: 1}
@@ -244,9 +255,7 @@ def sector_to_all_generalization_experiment(inverse=False):
                                       test_features=feature_data,
                                       test_targets=target_data,
                                       debug_label=sector, repeat_test=True)
-        for result in result_scores:
-            name, val = result
-            out_results[name].append(val)
+        out_results.append(result_scores)
 
     experiment = 'sector' + ('_inverse' if inverse else '')
     write_out_results(experiment, out_results, sectors, 'Sector', 'Accuracy',
@@ -261,7 +270,7 @@ def project_to_all_generalization_experiment(inverse=False):
     inverse = (inverse and 'Inverse ') or ''
     print_title('Running {}Project Generalization Experiment', '-', inverse)
     project_codes = chw_data.get_column_values('projectCode', top_n=10)
-    out_results = {name: [] for name in estimators.keys()}
+    out_results = []
 
     for project_code in project_codes:
         col_select = {'projectCode': project_code}
@@ -283,9 +292,7 @@ def project_to_all_generalization_experiment(inverse=False):
                                       debug_label=project_code,
                                       repeat_test=True)
 
-        for result in result_scores:
-            name, val = result
-            out_results[name].append(val)
+        out_results.append(result_scores)
 
     experiment = 'project' + ('_inverse' if inverse else '')
     write_out_results(experiment, out_results, map(str, project_codes.keys()),
@@ -322,7 +329,7 @@ if __name__ == '__main__':
                         help='Choose which experiments to run as list',)
     parser.add_argument('-g', '--graph', dest='graph', nargs='?',
                         default=False, help='Graph values from experiment')
-    parser.add_argument('-x', dest='x_ticks', type=int, nargs='*',
+    parser.add_argument('-x', dest='x_ticks', type=int, nargs='*', default=[],
                         help='Select which x axis features to show by index',)
     parser.add_argument('-s', '--split', action='store_true',
                         help='Generate a separate graph for each estimator')

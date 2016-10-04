@@ -197,12 +197,16 @@ def country_to_all_generalization_experiment(inverse=False):
         test_features = chw_data.get_features(col_filter=col_select,
                                               exclude=True)
         test_targets = chw_data.get_targets(col_select, exclude=True)
-        if inverse:
-            feature_data, target_data = test_features, test_targets
-        result_scores = param_run(feature_data, target_data,
-                                  test_features=test_features,
-                                  test_targets=test_targets,
-                                  debug_label=country, repeat_test=True)
+        if not inverse:
+            result_scores = param_run(feature_data, target_data,
+                                      test_features=test_features,
+                                      test_targets=test_targets,
+                                      debug_label=country, repeat_test=True)
+        else:
+            result_scores = param_run(test_features, test_targets,
+                                      test_features=feature_data,
+                                      test_targets=target_data,
+                                      debug_label=country, repeat_test=True)
         for result in result_scores:
             name, val = result
             out_results[name].append(val)
@@ -230,12 +234,16 @@ def sector_to_all_generalization_experiment(inverse=False):
         test_features = chw_data.get_features(col_filter=col_select,
                                               exclude=True)
         test_targets = chw_data.get_targets(col_select, exclude=True)
-        if inverse:
-            feature_data, target_data = test_features, test_targets
-        result_scores = param_run(feature_data, target_data,
-                                  test_features=test_features,
-                                  test_targets=test_targets,
-                                  debug_label=sector, repeat_test=True)
+        if not inverse:
+            result_scores = param_run(feature_data, target_data,
+                                      test_features=test_features,
+                                      test_targets=test_targets,
+                                      debug_label=sector, repeat_test=True)
+        else:
+            result_scores = param_run(test_features, test_targets,
+                                      test_features=feature_data,
+                                      test_targets=target_data,
+                                      debug_label=sector, repeat_test=True)
         for result in result_scores:
             name, val = result
             out_results[name].append(val)
@@ -262,12 +270,19 @@ def project_to_all_generalization_experiment(inverse=False):
         test_features = chw_data.get_features(col_filter=col_select,
                                               exclude=True)
         test_targets = chw_data.get_targets(col_select, exclude=True)
-        if inverse:
-            feature_data, target_data = test_features, test_targets
-        result_scores = param_run(feature_data, target_data,
-                                  test_features=test_features,
-                                  test_targets=test_targets,
-                                  debug_label=project_code, repeat_test=True)
+        if not inverse:
+            result_scores = param_run(feature_data, target_data,
+                                      test_features=test_features,
+                                      test_targets=test_targets,
+                                      debug_label=project_code,
+                                      repeat_test=True)
+        else:
+            result_scores = param_run(test_features, test_targets,
+                                      test_features=feature_data,
+                                      test_targets=target_data,
+                                      debug_label=project_code,
+                                      repeat_test=True)
+
         for result in result_scores:
             name, val = result
             out_results[name].append(val)

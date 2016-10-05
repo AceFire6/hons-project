@@ -19,6 +19,13 @@ def get_split_and_balance(train_targets, test_targets):
             'pos_test': test_tally[True], 'neg_test': test_tally[False]}
 
 
+def calculate_false_negatives(y_predict, y_actual, normalize=True):
+    total = len(y_predict)
+    count = sum(1 for i in xrange(total)
+                if y_predict[i] == False and y_actual.iloc[i] == True)
+    return float(count) / total if normalize else count
+
+
 def round_up(x, nearest=1):
     x = x + 1 if x % nearest == 0 else x
     return int(nearest * math.ceil(float(x) / nearest))

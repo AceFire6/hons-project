@@ -89,11 +89,10 @@ def draw_graph(graph_scores, x_values, y_lim=(0, 1), x_lim=None, y_label='',
 
 
 def draw_graph_from_file(experiment, split=False, x_ticks=list()):
-    file_scores = {}
     with open('%s-config.json' % experiment) as config_file:
         config = json.loads(config_file.readline())
 
-    results = config.pop('results', [])
+    results = config.pop('results', {})
 
     x_len = len(config['x_values'])
     for x in x_ticks:
@@ -102,20 +101,24 @@ def draw_graph_from_file(experiment, split=False, x_ticks=list()):
     config['x_tick_indices'] = x_ticks
     print 'Drawing graph for %s' % experiment
 
-    for classifier, scores in results.iteritems():
-        file_scores[classifier] = [[], []]
-        for score in scores:
-            score = numpy.array(score)
-            file_scores[classifier][0].append(score.mean())
-            file_scores[classifier][1].append(score.std())
+    file_scores = {metric: {} for metric in results.keys()}
+    for metric, result in results.iteritems():
+        for classifier, scores in result.iteritems():
+            file_scores[metric][classifier] = [[], []]
+            for score in scores:
+                score = numpy.array(score)
+                file_scores[metric][classifier][0].append(score.mean())
+                file_scores[metric][classifier][1].append(score.std())
 
-    if split:
-        for key, val in file_scores.iteritems():
-            conf = {k: v if k != 'file_name' else '%s-%s' % (key, v)
-                    for k, v in config.iteritems()}
-            draw_graph({key: val}, **conf)
-    else:
-        draw_graph(file_scores, **config)
+    file_name = config['file_name']
+    for metric, result in file_scores.iteritems():
+        config['y_label'] = metric.replace('_', ' ').title()
+        config['file_name'] = metric + '_' + file_name
+        draw_graph(result, **config)
+        if split:
+            for key, val in result.iteritems():
+                config['file_name'] = metric + '_' + key + '-' + file_name
+                draw_graph({key: val}, **config)
 
 
 def write_out_results(experiment, results, x_values, x_label, y_label,
@@ -137,10 +140,11 @@ def write_out_results(experiment, results, x_values, x_label, y_label,
             for estimator, accuracy, false_negatives in result['values']:
                 if estimator in accuracy_results:
                     accuracy_results[estimator].append(accuracy.tolist())
-                    f_negatives_results[estimator].append(accuracy.tolist())
+                    f_negatives_results[estimator].append(
+                        false_negatives.tolist())
                 else:
                     accuracy_results[estimator] = [accuracy.tolist()]
-                    f_negatives_results[estimator] = [accuracy.tolist()]
+                    f_negatives_results[estimator] = [false_negatives.tolist()]
 
     results_list = {'accuracy': accuracy_results,
                     'false_negatives': f_negatives_results}

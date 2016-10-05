@@ -5,8 +5,9 @@ import json
 import sys
 
 from experiment_data import ExperimentData
-from util import (generate_n_rgb_colours, get_short_codes,
-                  get_split_and_balance, list_index, print_title, round_up)
+from util import (calculate_false_negatives, generate_n_rgb_colours,
+                  get_short_codes, get_split_and_balance, list_index,
+                  print_title, round_up)
 
 from joblib import Parallel, delayed
 import matplotlib
@@ -41,9 +42,12 @@ def param_run(feature_data, target_data, test_features=None, test_targets=None,
         else:
             score = repeat_validate_score(estimator, feature_data, target_data,
                                           test_features, test_targets)
+        score, f_negatives = score
         accuracy_report = (estimator_name, score.mean(), score.std())
+        fn_report = (estimator_name, f_negatives.mean(), f_negatives.std())
         print '\t\t%s Accuracy: %0.2f (+/- %0.3f)' % accuracy_report
-        results['values'].append((estimator_name, score))
+        print '\t\t%s False Negatives: %0.2f (+/- %0.3f)' % fn_report
+        results['values'].append((estimator_name, score, f_negatives))
     return results
 
 
@@ -124,27 +128,44 @@ def write_out_results(experiment, results, x_values, x_label, y_label,
         'x_label': x_label,
     }
 
-    results_list = {}
+    accuracy_results = {}
+    f_negatives_results = {}
     with open('%s-%s-info.txt' % (experiment, date), 'w') as info_file:
         for result in results:
             expr_label = '%s - ' % result['stats'].pop('label')
             info_file.write(expr_label + json.dumps(result['stats']) + '\n')
-            for estimator, array in result['values']:
-                if estimator in results_list:
-                    results_list[estimator].append(array.tolist())
+            for estimator, accuracy, false_negatives in result['values']:
+                if estimator in accuracy_results:
+                    accuracy_results[estimator].append(accuracy.tolist())
+                    f_negatives_results[estimator].append(accuracy.tolist())
                 else:
-                    results_list[estimator] = [array.tolist()]
+                    accuracy_results[estimator] = [accuracy.tolist()]
+                    f_negatives_results[estimator] = [accuracy.tolist()]
+
+    results_list = {'accuracy': accuracy_results,
+                    'false_negatives': f_negatives_results}
 
     with open('%s-%s-config.json' % (experiment, date), 'w') as config_file:
         config_file.write(json.dumps(dict(config, results=results_list)))
 
     if draw:
-        agg_scores = {i: [[], []] for i in results_list.keys()}
-        for result in results:
-            for name, values in result['values']:
-                agg_scores[name][0].append(values.mean())
-                agg_scores[name][1].append(values.std())
-        draw_graph(agg_scores, **config)
+        agg_accuracy = {i: [[], []] for i in accuracy_results.keys()}
+        for name, results in accuracy_results.iteritems():
+            for values in results:
+                values = numpy.array(values)
+                agg_accuracy[name][0].append(values.mean())
+                agg_accuracy[name][1].append(values.std())
+        draw_graph(agg_accuracy, **config)
+
+        agg_f_negatives = {i: [[], []] for i in f_negatives_results.keys()}
+        for name, results in f_negatives_results.iteritems():
+            for values in results:
+                values = numpy.array(values)
+                agg_f_negatives[name][0].append(values.mean())
+                agg_f_negatives[name][1].append(values.std())
+        config['y_label'] = 'False Negatives'
+        config['file_name'] = 'fn_' + config['file_name']
+        draw_graph(agg_f_negatives, **config)
 
 
 def fit_and_score(estimator, feature_data, target_data, train_indices=None,
@@ -157,27 +178,39 @@ def fit_and_score(estimator, feature_data, target_data, train_indices=None,
         test_targets = target_data.iloc[test_indices]
     else:
         estimator.fit(feature_data, target_data)
-    return estimator.score(test_features, test_targets)
+    classification = estimator.predict(test_features)
+    false_negatives = calculate_false_negatives(classification, test_targets)
+    return estimator.score(test_features, test_targets), false_negatives
 
 
 def repeat_validate_score(estimator, feature_data, target_data, test_features,
                           test_targets, repetitions=5):
     parallel = Parallel(n_jobs=-1)
-    scores = parallel(delayed(fit_and_score)(
+    results = parallel(delayed(fit_and_score)(
         clone(estimator), feature_data, target_data,
         test_features=test_features, test_targets=test_targets)
                       for i in range(repetitions))
-    return numpy.array(scores)
+    scores = []
+    false_negatives = []
+    for score, false_negative in results:
+        scores.append(score)
+        false_negatives.append(false_negative)
+    return numpy.array(scores), numpy.array(false_negatives)
 
 
 def cross_validate_score(estimator, feature_data, target_data, cv=10):
     kfold = StratifiedKFold(n_splits=cv)
     parallel = Parallel(n_jobs=-1)
     split = kfold.split(feature_data, target_data)
-    scores = parallel(delayed(fit_and_score)(
+    results = parallel(delayed(fit_and_score)(
         clone(estimator), feature_data, target_data, train, test)
              for train, test in split)
-    return numpy.array(scores)
+    scores = []
+    false_negatives = []
+    for score, false_negative in results:
+        scores.append(score)
+        false_negatives.append(false_negative)
+    return numpy.array(scores), numpy.array(false_negatives)
 
 
 def effect_of_day_data_experiment():

@@ -52,8 +52,10 @@ def param_run(feature_data, target_data, test_features=None, test_targets=None,
 
 
 def draw_graph(graph_scores, x_values, y_lim=(0, 1), x_lim=None, y_label='',
-               x_label='', x_tick_indices=None, file_name='', grid=True):
+               x_label='', x_tick_indices=None, file_name='', grid=True,
+               max_x_len=5):
     legend = []
+    legend_loc = 4
 
     x_range = x_values
     if type(x_values[0]) not in [int, float]:
@@ -70,16 +72,24 @@ def draw_graph(graph_scores, x_values, y_lim=(0, 1), x_lim=None, y_label='',
         plt.errorbar(x_range, y_vals, yerr=y_err, fmt=next(styles),
                      c=next(colours), linewidth=1.5, markersize=7,
                      markeredgewidth=1)
+
+        legend_loc = legend_loc and (4 if all(i > 0.2 for i in y_vals) else 0)
         legend.append(graph_label.replace('_', ' '))
 
     plt.gca().yaxis.set_major_locator(MultipleLocator(base=0.1))
     if x_tick_indices or type(x_values[0]) not in [int, float]:
         labels = list_index(x_tick_indices, x_values)
+        shorten_x_labels = any(len(str(i)) > max_x_len for i in labels)
+        if shorten_x_labels:
+            with open(file_name.replace('png', 'txt'), 'w') as label_f:
+                x_map = [(i + 1, val) for i, val in enumerate(labels)]
+                label_f.write(json.dumps(x_map))
+            labels = [i[0] for i in x_map]
         plt.xticks(x_range, labels)
     else:
         plt.gca().xaxis.set_major_locator(MultipleLocator(base=1.0))
 
-    plt.legend(legend, loc=4)
+    plt.legend(legend, loc=legend_loc, fontsize='small', labelspacing=0.2)
     plt.ylim(y_lim)
     plt.xlim(x_lim)
     plt.ylabel(y_label)

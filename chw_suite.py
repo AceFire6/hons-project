@@ -233,7 +233,10 @@ def effect_of_day_data_experiment():
     # Go through all values of X (1-90)
     x_val_range = range(1, 91)
     for x in x_val_range:
-        feature_data = chw_data.get_features(x, drop_cols=chw_data.categories)
+        x_col = 'X%d' % x
+        feature_data = chw_data.get_features(drop_cols=chw_data.categories)
+        drop_cols = [i for i in feature_data.columns if i != x_col]
+        feature_data = feature_data.drop(drop_cols, axis=1)
         target_data = chw_data.get_targets()
         result_scores = param_run(feature_data, target_data,
                                   debug_label=x, cross_folds=10)

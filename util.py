@@ -11,9 +11,13 @@ def generate_n_rgb_colours(n, saturation=0.34, value=0.58):
 
 
 def get_split_and_balance(train_targets, test_targets):
-    train_n, test_n = len(train_targets), len(test_targets)
+    train_n = len(train_targets)
     train_tally = train_targets.value_counts()
-    test_tally = test_targets.value_counts()
+    test_n = None
+    test_tally = {True: None, False: None}
+    if test_targets:
+        test_n = len(test_targets)
+        test_tally = test_targets.value_counts()
     return {'train_n': train_n, 'test_n': test_n,
             'pos_train': train_tally[True], 'neg_train': train_tally[False],
             'pos_test': test_tally[True], 'neg_test': test_tally[False]}

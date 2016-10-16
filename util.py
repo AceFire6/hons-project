@@ -15,12 +15,14 @@ def get_split_and_balance(train_targets, test_targets):
     train_tally = train_targets.value_counts()
     test_n = None
     test_tally = {True: None, False: None}
-    if test_targets:
+    if test_targets is not None:
         test_n = len(test_targets)
         test_tally = test_targets.value_counts()
     return {'train_n': train_n, 'test_n': test_n,
-            'pos_train': train_tally[True], 'neg_train': train_tally[False],
-            'pos_test': test_tally[True], 'neg_test': test_tally[False]}
+            'pos_train': train_tally.get(True, 0),
+            'neg_train': train_tally.get(False, 0),
+            'pos_test': test_tally.get(True, 0),
+            'neg_test': test_tally.get(False, 0)}
 
 
 def calculate_false_negatives(y_predict, y_actual, normalize=True):

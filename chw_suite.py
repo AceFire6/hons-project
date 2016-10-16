@@ -126,9 +126,13 @@ def draw_graph_from_file(experiment, split=False, x_ticks=list()):
         config['file_name'] = metric + '_' + file_name
         draw_graph(result, **config)
         if split:
+            f_n = 'false_negatives'
             for key, val in result.iteritems():
+                values = {key: val}
+                if metric != f_n and f_n in file_scores.keys():
+                    values['%s_%s' % (key, f_n)] = file_scores[f_n][key]
                 config['file_name'] = metric + '_' + key + '-' + file_name
-                draw_graph({key: val}, **config)
+                draw_graph(values, **config)
 
 
 def write_out_results(experiment, results, x_values, x_label, y_label,
@@ -177,9 +181,51 @@ def write_out_results(experiment, results, x_values, x_label, y_label,
                 values = numpy.array(values)
                 agg_f_negatives[name][0].append(values.mean())
                 agg_f_negatives[name][1].append(values.std())
-        config['y_label'] = 'False Negatives'
-        config['file_name'] = 'fn_' + config['file_name']
-        draw_graph(agg_f_negatives, **config)
+        y_label = 'False Negatives'
+        file_name = 'fn_' + config['file_name']
+        draw_graph(agg_f_negatives, **dict(config, y_label=y_label,
+                                           file_name=file_name))
+    return dict(config, results=results_list)
+
+
+def draw_table(data, projects, html=False):
+    headings = ('Project Code', 'Model Constraint', 'Relative Accuracy',
+                'Accuracy')
+    head_template = ('<tr>%s</tr>\n' % ('<th>%s</th>' * len(headings))
+                     if html else ('| %s ' * len(headings)) + '|\n')
+    row_template = head_template.replace('th', 'td') if html else head_template
+
+    model_constraints = ['All Data', 'Same Country',
+                         'Same Sector', 'Same Country & Sector']
+
+    for name, values in data.iteritems():
+        print 'Table %s' % name
+        if html:
+            table = '<thead>%s</thead>\n<tbody>\n' % (head_template % headings)
+        else:
+            table = head_template % headings
+        constraint_index = 0
+        project_index = 0
+        base_accuracy = 0
+        for value in values:
+            project = projects[project_index]
+            label = model_constraints[constraint_index]
+            accuracy = (sum(value) / len(value)) * 100 if value else 0
+            relative_accuracy = 0
+            if constraint_index == 0:
+                base_accuracy = accuracy
+            else:
+                relative_accuracy = accuracy - base_accuracy
+
+            relative_accuracy = '{:+.3f}'.format(relative_accuracy)
+            accuracy = '{:.3f}'.format(accuracy)
+            table += row_template % (project, label,
+                                     relative_accuracy, accuracy)
+            constraint_index = (constraint_index + 1) % 4
+            if constraint_index == 0:
+                project_index += 1
+        html_temp = '<table class="pure-table pure-table-bordered">%s</table>'
+        print html_temp % (table + '</tbody>') if html else table
 
 
 def fit_and_score(estimator, feature_data, target_data, train_indices=None,
@@ -352,6 +398,47 @@ def all_to_project_generalization_experiment():
     project_to_all_generalization_experiment(True)
 
 
+def project_model_comparison_experiment():
+    print_title('Running Project Model Comparison Experiment', '-')
+    training_order = ['All Data', 'Same Country',
+                      'Same Sector', 'Same Country & Sector']
+    out_results = []
+
+    project_codes = chw_data.get_column_values('projectCode', top_n=10)
+
+    for project_code in project_codes:
+        col_select = {'projectCode': project_code}
+        all_f = chw_data.get_features(col_select, exclude=True)
+        all_t = chw_data.get_targets(col_select, exclude=True)
+        all_data = (all_f, all_t)
+        country, sector = chw_data.get_columns(lambda x: all(x==1), col_select)
+
+        same_country = (all_f[all_f[country] == 1], all_t[all_f[country] == 1])
+        same_sector = (all_f[all_f[sector] == 1], all_t[all_f[sector] == 1])
+        same_country_and_sector = (
+            all_f[(all_f[country] == 1) & (all_f[sector] == 1)],
+            all_t[(all_f[country] == 1) & (all_f[sector] == 1)],
+        )
+        test_features = chw_data.get_features(col_select)
+        test_targets = chw_data.get_targets(col_select)
+        training_sets = {'All Data': all_data, 'Same Country': same_country,
+                         'Same Sector': same_sector,
+                         'Same Country & Sector': same_country_and_sector}
+        for name in training_order:
+            label = '%d - %s' % (project_code, name)
+            train_features, train_targets = training_sets[name]
+            if len(train_targets.value_counts()) > 1:
+                result_scores = param_run(train_features, train_targets,
+                                          test_features=test_features,
+                                          test_targets=test_targets,
+                                          debug_label=label, repeat_test=True)
+            else:
+                result_scores = []
+                print 'Too few classes'
+            out_results.append(result_scores)
+    write_out_results('combo', out_results, project_codes, None, 'Accuracy')
+
+
 if __name__ == '__main__':
     experiments = [
         '0. Effect of Number of Days Included (1-90)',
@@ -361,6 +448,7 @@ if __name__ == '__main__':
         '4. Ability to Generalize Data to Sector',
         '5. Ability to Generalize Project Data',
         '6. Ability to Generalize Data to Project',
+        '7. Project Model Comparison Table',
     ]
     experiment_functions = [
         effect_of_day_data_experiment,
@@ -370,6 +458,7 @@ if __name__ == '__main__':
         all_to_sector_generalization_experiment,
         project_to_all_generalization_experiment,
         all_to_project_generalization_experiment,
+        project_model_comparison_experiment,
     ]
 
     parser = argparse.ArgumentParser()

@@ -6,8 +6,8 @@ import sys
 
 from experiment_data import ExperimentData
 from util import (calculate_false_negatives, generate_n_rgb_colours,
-                  get_short_codes, get_split_and_balance, list_index,
-                  print_title, round_up)
+                  replace_isodate, get_short_codes, get_split_and_balance,
+                  list_index, print_title, round_up)
 
 from joblib import Parallel, delayed
 import matplotlib
@@ -54,6 +54,7 @@ def param_run(feature_data, target_data, test_features=None, test_targets=None,
 def draw_graph(graph_scores, x_values, y_lim=(0, 1), x_lim=None, y_label='',
                x_label='', x_tick_indices=None, file_name='', grid=True,
                max_x_len=5):
+    file_name = replace_isodate(file_name, args.file_repl)
     legend = []
     legend_loc = 4
 
@@ -137,7 +138,10 @@ def draw_graph_from_file(experiment, split=False, x_ticks=list()):
 
 def write_out_results(experiment, results, x_values, x_label, y_label,
                       file_name=None, draw=False):
-    date = datetime.utcnow().replace(microsecond=0).isoformat()
+    if not args.file_repl:
+        date = datetime.utcnow().replace(microsecond=0).isoformat()
+    else:
+        date = args.file_repl
     file_name = file_name or '%s-%s-graph.png' % (experiment, date)
 
     config = {
@@ -475,6 +479,8 @@ if __name__ == '__main__':
                         help='Choose which experiments to run as list',)
     parser.add_argument('-g', '--graph', dest='graph', nargs='?',
                         default=False, help='Graph values from experiment')
+    parser.add_argument('-f', '--file', dest='file_repl',
+                        help='Replace date in generated file names')
     parser.add_argument('-x', dest='x_ticks', type=int, nargs='*', default=[],
                         help='Select which x axis features to show by index',)
     parser.add_argument('-s', '--split', action='store_true',

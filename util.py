@@ -1,5 +1,6 @@
 import colorsys
 import math
+import re
 
 import numpy
 import pycountry
@@ -63,3 +64,12 @@ def get_short_codes(countries):
                     codes.append(c.alpha3)
                     continue
     return codes
+
+
+def replace_isodate(file_name, replace_str):
+    if not replace_str:
+        return file_name
+    date_time_regex = r'(?:\d{2,4}-?){3}T(?:\d{2,4}:?){3}'
+    if re.search(date_time_regex, file_name):
+        return re.sub(date_time_regex, replace_str, file_name)
+    return file_name

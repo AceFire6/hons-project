@@ -445,10 +445,9 @@ def project_model_comparison_experiment():
 
 def clean_dataset(dataset):
     # Drop duplicate users
-    new_data = dataset.drop_duplicates('userCode')
+    dataset.drop_duplicates('userCode', inplace=True)
     # Replace blank sector fields with No info
-    new_data.sector = new_data.sector.fillna('No info')
-    return new_data
+    dataset.sector.fillna('No info', inplace=True)
 
 
 if __name__ == '__main__':

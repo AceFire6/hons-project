@@ -439,6 +439,14 @@ def project_model_comparison_experiment():
     write_out_results('combo', out_results, project_codes, None, 'Accuracy')
 
 
+def clean_dataset(dataset):
+    # Drop duplicate users
+    new_data = dataset.drop_duplicates('userCode')
+    # Replace blank sector fields with No info
+    new_data.sector = new_data.sector.fillna('No info')
+    return new_data
+
+
 if __name__ == '__main__':
     experiments = [
         '0. Effect of Number of Days Included (1-90)',
@@ -486,7 +494,7 @@ if __name__ == '__main__':
     categorical_features = ['country', 'sector']
 
     chw_data = ExperimentData('chw_data.csv', label, drop_features,
-                              categorical_features)
+                              categorical_features, clean_dataset)
 
     tree = DecisionTreeClassifier()
     forest = RandomForestClassifier()

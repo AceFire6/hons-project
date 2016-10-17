@@ -5,7 +5,7 @@ from sklearn.preprocessing import normalize
 
 class ExperimentData(object):
     def __init__(self, file_name, label='', drop_cols=list(),
-                 categorical_features=list()):
+                 categorical_features=list(), clean_func=None):
         self._file_name = file_name
         self._dataset = DataFrame.from_csv(file_name)
         self._features = self._dataset.columns
@@ -13,8 +13,12 @@ class ExperimentData(object):
         self.drop_cols = drop_cols
         self.categories = categorical_features
         self.label = label
+        self.clean_data = clean_func
         if label:
+            if self.clean_data:
+                self._dataset = self.clean_data(self._dataset)
             self._process_dataset(label, True, drop_cols, categorical_features)
+
 
     def _process_dataset(self, label, assign=True, drop_cols=list(),
                          categorical_features=list()):

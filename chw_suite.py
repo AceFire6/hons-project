@@ -290,7 +290,7 @@ def effect_of_day_data_experiment():
         result_scores = param_run(feature_data, target_data,
                                   debug_label=x, cross_folds=10)
         out_results.append(result_scores)
-    write_out_results('xvals', out_results, x_val_range,
+    write_out_results('days', out_results, x_val_range,
                       'Number of days included', 'Accuracy', draw=args.graph)
 
 

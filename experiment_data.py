@@ -16,9 +16,8 @@ class ExperimentData(object):
         self.clean_data = clean_func
         if label:
             if self.clean_data:
-                self.clean_data(self._dataset)
+                self._dataset = self.clean_data(self._dataset)
             self._process_dataset(label, True, drop_cols, categorical_features)
-
 
     def _process_dataset(self, label, assign=True, drop_cols=list(),
                          categorical_features=list()):

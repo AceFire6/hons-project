@@ -448,6 +448,8 @@ def clean_dataset(dataset):
     dataset.drop_duplicates('userCode', inplace=True)
     # Replace blank sector fields with No info
     dataset.sector.fillna('No info', inplace=True)
+    # If in tests mode only let a fraction of data through
+    return dataset.sample(frac=args.test) if args.test else dataset
 
 
 if __name__ == '__main__':
@@ -484,9 +486,16 @@ if __name__ == '__main__':
                         help='Select which x axis features to show by index',)
     parser.add_argument('-s', '--split', action='store_true',
                         help='Generate a separate graph for each estimator')
+    parser.add_argument('-t', '--test', nargs='?', default=False, type=float,
+                        help=('Run in test mode. '
+                              'Uses specified fraction of data or 0.25'))
     parser.add_argument('-l', '--list', action='store_true',
                         help='List all experiments')
     args = parser.parse_args()
+
+    # Handle argument with optional value
+    if not args.test:
+        args.test = (args.test is None) and 0.25  # 0.25 if no explicit value
 
     matplotlib.rcParams['backend'] = "Qt4Agg"
     markers = ['o', '^', 's', 'D']

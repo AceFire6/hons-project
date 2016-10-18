@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 import numpy
 from sklearn import clone
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import RidgeClassifier
 from sklearn.model_selection import StratifiedKFold
 from sklearn.neural_network import MLPClassifier
 from sklearn.svm import SVC
@@ -514,12 +515,14 @@ if __name__ == '__main__':
     forest = RandomForestClassifier(class_weight='balanced')
     svm = SVC(class_weight='balanced', cache_size=1000)
     nn = MLPClassifier(hidden_layer_sizes=(50,), max_iter=1000)
+    ridge = RidgeClassifier(class_weight='balanced')
 
     estimators = {
         'Decision_Tree': tree,
         'Random_Forest': forest,
         'SVM': svm,
         'Neural_Network': nn,
+        'Ridge': ridge,
     }
 
     colours = itertools.cycle(generate_n_rgb_colours(len(estimators)))

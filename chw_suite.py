@@ -510,9 +510,9 @@ if __name__ == '__main__':
     chw_data = ExperimentData('chw_data.csv', label, drop_features,
                               categorical_features, clean_dataset)
 
-    tree = DecisionTreeClassifier()
-    forest = RandomForestClassifier()
-    svm = SVC()
+    tree = DecisionTreeClassifier(class_weight='balanced')
+    forest = RandomForestClassifier(class_weight='balanced')
+    svm = SVC(class_weight='balanced', cache_size=1000)
     nn = MLPClassifier(hidden_layer_sizes=(50,), max_iter=1000)
 
     estimators = {

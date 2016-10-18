@@ -437,7 +437,7 @@ def project_model_comparison_experiment():
                                           test_targets=test_targets,
                                           debug_label=label, repeat_test=True)
             else:
-                result_scores = []
+                result_scores = {'stats': {'label': label}, 'values': ()}
                 print 'Too few classes'
             out_results.append(result_scores)
     write_out_results('combo', out_results, project_codes, None, 'Accuracy')

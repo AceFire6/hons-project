@@ -125,6 +125,8 @@ def draw_graph_from_file(experiment, split=False, x_ticks=list()):
 
     file_name = config['file_name']
     for metric, result in file_scores.iteritems():
+        if metric != 'accuracy' and not args.add_metrics:
+            continue
         config['y_label'] = metric.replace('_', ' ').title()
         config['file_name'] = metric + '_' + file_name
         draw_graph(result, **config)

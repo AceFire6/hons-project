@@ -274,6 +274,14 @@ def cross_validate_score(estimator, feature_data, target_data, cv=10):
             'false_negatives': numpy.array(false_negatives)}
 
 
+def all_data_performance_experiment():
+    print_title('All Data Performance Experiment', '-')
+    feature_data = chw_data.get_features()
+    target_data = chw_data.get_targets()
+    result_scores = param_run(feature_data, target_data)
+    print result_scores
+
+
 def effect_of_day_data_experiment():
     print_title('Running Effect of Day Experiment', '-')
     out_results = []
@@ -451,16 +459,18 @@ def clean_dataset(dataset):
 
 if __name__ == '__main__':
     experiments = [
-        '0. Effect of Number of Days Included (1-90)',
-        '1. Ability to Generalize Country Data',
-        '2. Ability to Generalize Data to Country',
-        '3. Ability to Generalize Sector Data',
-        '4. Ability to Generalize Data to Sector',
-        '5. Ability to Generalize Project Data',
-        '6. Ability to Generalize Data to Project',
-        '7. Project Model Comparison Table',
+        'All Data Performance',
+        'Effect of Number of Days Included (1-90)',
+        'Ability to Generalize Country Data',
+        'Ability to Generalize Data to Country',
+        'Ability to Generalize Sector Data',
+        'Ability to Generalize Data to Sector',
+        'Ability to Generalize Project Data',
+        'Ability to Generalize Data to Project',
+        'Project Model Comparison Table',
     ]
     experiment_functions = [
+        all_data_performance_experiment,
         effect_of_day_data_experiment,
         country_to_all_generalization_experiment,
         all_to_country_generalization_experiment,
@@ -527,7 +537,8 @@ if __name__ == '__main__':
 
     if args.list:
         print_title('All Experiments:', '-')
-        print '\n'.join(experiments)
+        for i in range(len(experiments)):
+            print '%d. %s' % (i, experiments[i])
     elif args.graph:
         draw_graph_from_file(args.graph, args.split, args.x_ticks)
     elif args.experiments:

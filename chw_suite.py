@@ -170,6 +170,8 @@ def write_out_results(experiment, results, x_values, x_label, y_label,
 
     if draw:
         for metric, metric_results in results_list.iteritems():
+            if metric != 'accuracy' and not args.add_metrics:
+                continue
             agg_metric = {i: [[], []] for i in metric_results.keys()}
             for estimator, est_results in metric_results.iteritems():
                 for values in est_results:
@@ -482,6 +484,8 @@ if __name__ == '__main__':
     parser.add_argument('-t', '--test', nargs='?', default=False, type=float,
                         help=('Run in test mode. '
                               'Uses specified fraction of data or 0.25'))
+    parser.add_argument('-m', '--more-metrics', action='store_true',
+                        dest='add_metrics', help='Graph additional metrics.')
     parser.add_argument('-l', '--list', action='store_true',
                         help='List all experiments')
     args = parser.parse_args()

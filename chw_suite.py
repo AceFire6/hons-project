@@ -495,7 +495,7 @@ if __name__ == '__main__':
         args.test = (args.test is None) and 0.25  # 0.25 if no explicit value
 
     matplotlib.rcParams['backend'] = "Qt4Agg"
-    markers = ['o', '^', 's', 'D']
+    markers = ['o', '^', 's', 'D', 'v']
     line_types = ['-']
     styles = [''.join(i) for i in itertools.product(line_types, markers)]
     styles = itertools.cycle(styles)

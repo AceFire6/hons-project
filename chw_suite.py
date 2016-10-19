@@ -43,12 +43,13 @@ def param_run(feature_data, target_data, test_features=None, test_targets=None,
         else:
             score = repeat_validate_score(estimator, feature_data, target_data,
                                           test_features, test_targets)
-        score, f_negatives = score
-        accuracy_report = (estimator_name, score.mean(), score.std())
-        fn_report = (estimator_name, f_negatives.mean(), f_negatives.std())
+        accuracy_report = (estimator_name, score['accuracy'].mean(),
+                           score['accuracy'].std())
+        fn_report = (estimator_name, score['false_negatives'].mean(),
+                     score['false_negatives'].std())
         print '\t\t%s Accuracy: %0.2f (+/- %0.3f)' % accuracy_report
         print '\t\t%s False Negatives: %0.2f (+/- %0.3f)' % fn_report
-        results['values'].append((estimator_name, score, f_negatives))
+        results['values'].append((estimator_name, score))
     return results
 
 
@@ -150,46 +151,35 @@ def write_out_results(experiment, results, x_values, x_label, y_label,
         'x_label': x_label,
     }
 
-    accuracy_results = {}
-    f_negatives_results = {}
+    results_list = {}
     with open('%s-%s-info.txt' % (experiment, date), 'w') as info_file:
         for result in results:
             expr_label = '%s - ' % result['stats'].pop('label')
             info_file.write(expr_label + json.dumps(result['stats']) + '\n')
-            for estimator, accuracy, false_negatives in result['values']:
-                if estimator in accuracy_results:
-                    accuracy_results[estimator].append(accuracy.tolist())
-                    f_negatives_results[estimator].append(
-                        false_negatives.tolist())
-                else:
-                    accuracy_results[estimator] = [accuracy.tolist()]
-                    f_negatives_results[estimator] = [false_negatives.tolist()]
-
-    results_list = {'accuracy': accuracy_results,
-                    'false_negatives': f_negatives_results}
+            for estimator, metrics in result['values']:
+                for metric, values in metrics.iteritems():
+                    if metric not in results_list:
+                        results_list[metric] = {}
+                    if estimator in results_list[metric]:
+                        results_list[metric][estimator].append(values.tolist())
+                    else:
+                        results_list[metric][estimator] = [values.tolist()]
 
     with open('%s-%s-config.json' % (experiment, date), 'w') as config_file:
         config_file.write(json.dumps(dict(config, results=results_list)))
 
     if draw:
-        agg_accuracy = {i: [[], []] for i in accuracy_results.keys()}
-        for name, results in accuracy_results.iteritems():
-            for values in results:
-                values = numpy.array(values)
-                agg_accuracy[name][0].append(values.mean())
-                agg_accuracy[name][1].append(values.std())
-        draw_graph(agg_accuracy, **config)
-
-        agg_f_negatives = {i: [[], []] for i in f_negatives_results.keys()}
-        for name, results in f_negatives_results.iteritems():
-            for values in results:
-                values = numpy.array(values)
-                agg_f_negatives[name][0].append(values.mean())
-                agg_f_negatives[name][1].append(values.std())
-        y_label = 'False Negatives'
-        file_name = 'fn_' + config['file_name']
-        draw_graph(agg_f_negatives, **dict(config, y_label=y_label,
-                                           file_name=file_name))
+        for metric, metric_results in results_list.iteritems():
+            agg_metric = {i: [[], []] for i in metric_results.keys()}
+            for estimator, est_results in metric_results.iteritems():
+                for values in est_results:
+                    values = numpy.array(values)
+                    agg_metric[estimator][0].append(values.mean())
+                    agg_metric[estimator][1].append(values.std())
+            file_name = '%s_%s' % (metric, config['file_name'])
+            y_label = metric.replace('_', ' ').title()
+            metric_config = dict(config, y_label=y_label, file_name=file_name)
+            draw_graph(agg_metric, **metric_config)
     return dict(config, results=results_list)
 
 
@@ -260,7 +250,8 @@ def repeat_validate_score(estimator, feature_data, target_data, test_features,
     for score, false_negative in results:
         scores.append(score)
         false_negatives.append(false_negative)
-    return numpy.array(scores), numpy.array(false_negatives)
+    return {'accuracy': numpy.array(scores),
+            'false_negatives': numpy.array(false_negatives)}
 
 
 def cross_validate_score(estimator, feature_data, target_data, cv=10):
@@ -275,7 +266,8 @@ def cross_validate_score(estimator, feature_data, target_data, cv=10):
     for score, false_negative in results:
         scores.append(score)
         false_negatives.append(false_negative)
-    return numpy.array(scores), numpy.array(false_negatives)
+    return {'accuracy': numpy.array(scores),
+            'false_negatives': numpy.array(false_negatives)}
 
 
 def effect_of_day_data_experiment():

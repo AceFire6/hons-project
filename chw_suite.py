@@ -275,6 +275,7 @@ def cross_validate_score(estimator, feature_data, target_data, cv=10):
 
 
 def all_data_performance_experiment():
+    """All Data Performance Experiment"""
     print_title('All Data Performance Experiment', '-')
     feature_data = chw_data.get_features()
     target_data = chw_data.get_targets()
@@ -283,6 +284,7 @@ def all_data_performance_experiment():
 
 
 def effect_of_day_data_experiment():
+    """Effect of Number of Days Included (1-90)"""
     print_title('Running Effect of Day Experiment', '-')
     out_results = []
     # Go through all values of X (1-90)
@@ -300,6 +302,7 @@ def effect_of_day_data_experiment():
 
 
 def country_to_all_generalization_experiment(inverse=False):
+    """Ability to Generalize Country Data"""
     inverse = (inverse and 'Inverse ') or ''
     print_title('Running {}Region Generalization Experiment', '-', inverse)
     region_data_size = 500
@@ -332,10 +335,12 @@ def country_to_all_generalization_experiment(inverse=False):
 
 
 def all_to_country_generalization_experiment():
+    """Ability to Generalize Data to Country"""
     country_to_all_generalization_experiment(True)
 
 
 def sector_to_all_generalization_experiment(inverse=False):
+    """Ability to Generalize Sector Data"""
     inverse = (inverse and 'Inverse ') or ''
     print_title('Running {}Country Generalization Experiment', '-', inverse)
     sectors = set(chw_data.sector)
@@ -367,10 +372,12 @@ def sector_to_all_generalization_experiment(inverse=False):
 
 
 def all_to_sector_generalization_experiment():
+    """Ability to Generalize Data to Sector"""
     sector_to_all_generalization_experiment(True)
 
 
 def project_to_all_generalization_experiment(inverse=False):
+    """Ability to Generalize Project Data"""
     inverse = (inverse and 'Inverse ') or ''
     print_title('Running {}Project Generalization Experiment', '-', inverse)
     project_codes = chw_data.get_column_values('projectCode', top_n=10)
@@ -404,10 +411,12 @@ def project_to_all_generalization_experiment(inverse=False):
 
 
 def all_to_project_generalization_experiment():
+    """Ability to Generalize Data to Project"""
     project_to_all_generalization_experiment(True)
 
 
 def project_model_comparison_experiment():
+    """Project Model Comparison Table"""
     print_title('Running Project Model Comparison Experiment', '-')
     training_order = ['All Data', 'Same Country',
                       'Same Sector', 'Same Country & Sector']
@@ -458,17 +467,6 @@ def clean_dataset(dataset):
 
 
 if __name__ == '__main__':
-    experiments = [
-        'All Data Performance',
-        'Effect of Number of Days Included (1-90)',
-        'Ability to Generalize Country Data',
-        'Ability to Generalize Data to Country',
-        'Ability to Generalize Sector Data',
-        'Ability to Generalize Data to Sector',
-        'Ability to Generalize Project Data',
-        'Ability to Generalize Data to Project',
-        'Project Model Comparison Table',
-    ]
     experiment_functions = [
         all_data_performance_experiment,
         effect_of_day_data_experiment,
@@ -483,7 +481,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-e', '--experiment', dest='experiments', type=int,
-                        nargs='*', choices=range(len(experiments)),
+                        nargs='*', choices=range(len(experiment_functions)),
                         help='Choose which experiments to run as list',)
     parser.add_argument('-g', '--graph', dest='graph', nargs='?',
                         default=False, help='Graph values from experiment')
@@ -537,8 +535,8 @@ if __name__ == '__main__':
 
     if args.list:
         print_title('All Experiments:', '-')
-        for i in range(len(experiments)):
-            print '%d. %s' % (i, experiments[i])
+        for i in range(len(experiment_functions)):
+            print '%d. %s' % (i, experiment_functions[i].__doc__)
     elif args.graph:
         draw_graph_from_file(args.graph, args.split, args.x_ticks)
     elif args.experiments:

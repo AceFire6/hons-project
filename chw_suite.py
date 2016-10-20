@@ -280,7 +280,42 @@ def all_data_performance_experiment():
     feature_data = chw_data.get_features()
     target_data = chw_data.get_targets()
     result_scores = param_run(feature_data, target_data)
-    print result_scores
+    return result_scores
+
+
+def added_features_performance_experiment():
+    """Added features Performance Experiment"""
+    print_title('Added Features Performance Experiment', '-')
+
+    value_columns = ['X%d' % i for i in range(1, 91)]
+    total_forms = chw_data.dataset[value_columns].sum(axis=1)
+    pct_utilized = (chw_data.dataset[value_columns] > 0).sum(axis=1) / 90
+    active_last_month = (chw_data.dataset[value_columns[-31:]] > 0).any(axis=1)
+    prev_10_gradient = (chw_data.dataset['X90'] - chw_data.dataset['X80']) / 10
+
+    # All the data without any new features
+    out_results = [all_data_performance_experiment()]
+
+    other_features = {
+        'total_forms': total_forms,
+        'activity_in_last_month': active_last_month,
+        'pct_days_utilized': pct_utilized,
+        'gradient_last_10_days': prev_10_gradient
+    }
+
+    for feature_name, feature_column in other_features.iteritems():
+        feature_column.rename(feature_name, inplace=True)
+        chw_data.add_feature(feature_name, feature_column)
+        feature_data = chw_data.get_features()
+        target_data = chw_data.get_targets()
+        result_scores = param_run(feature_data, target_data,
+                                  debug_label=feature_name)
+        out_results.append(result_scores)
+        chw_data.drop_feature(feature_name)
+
+    x_values = ['None'] + other_features.keys()
+    write_out_results('features', out_results, x_values, 'Feature', 'Accuracy',
+                      draw=args.graph)
 
 
 def effect_of_day_data_experiment():
@@ -290,7 +325,7 @@ def effect_of_day_data_experiment():
     # Go through all values of X (1-90)
     x_val_range = range(1, 91)
     for x in x_val_range:
-        x_col = ['X%d' % i for i in range(x+1, 91)]
+        x_col = ['nX%d' % i for i in range(x+1, 91)]
         feature_data = chw_data.get_features(drop_cols=chw_data.categories)
         feature_data = feature_data.drop(x_col, axis=1)
         target_data = chw_data.get_targets()
@@ -469,6 +504,7 @@ def clean_dataset(dataset):
 if __name__ == '__main__':
     experiment_functions = [
         all_data_performance_experiment,
+        added_features_performance_experiment,
         effect_of_day_data_experiment,
         country_to_all_generalization_experiment,
         all_to_country_generalization_experiment,

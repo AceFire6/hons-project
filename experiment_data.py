@@ -36,8 +36,13 @@ class ExperimentData(object):
 
         if categorical_features:
             number_features = features.difference(new_categorical_features)
+            features = features.drop(number_features).tolist()
             self.categories = new_categorical_features
-            dataset[number_features] = normalize(dataset[number_features])
+            n_number_features = ['n%s' % n for n in number_features]
+            for i in range(len(n_number_features)):
+                dataset[n_number_features[i]] = dataset[number_features[i]]
+            dataset[n_number_features] = normalize(dataset[number_features])
+            features.extend(n_number_features)
 
         if assign:
             self._processed_dataset = dataset
@@ -112,3 +117,10 @@ class ExperimentData(object):
         indices = self.get_indices(col_filter or {})
         data = self.dataset[indices] if (indices is not None) else self.dataset
         return [label for label, val in data.apply(func).iteritems() if val]
+
+    def add_feature(self, name, column):
+        self._processed_dataset = pandas.concat([self.dataset, column], axis=1)
+        self._features.append(name)
+
+    def drop_feature(self, name):
+        self.dataset.drop(name, axis=1, inplace=True)

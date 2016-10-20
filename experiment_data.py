@@ -42,7 +42,7 @@ class ExperimentData(object):
             for i in range(len(n_number_features)):
                 dataset[n_number_features[i]] = dataset[number_features[i]]
             dataset[n_number_features] = normalize(dataset[number_features])
-            features.extend(n_number_features)
+            features = features + n_number_features
 
         if assign:
             self._processed_dataset = dataset
@@ -124,3 +124,4 @@ class ExperimentData(object):
 
     def drop_feature(self, name):
         self.dataset.drop(name, axis=1, inplace=True)
+        self._features.remove(name)

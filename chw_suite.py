@@ -306,9 +306,7 @@ def added_features_performance_experiment():
     for feature_name, feature_column in other_features.iteritems():
         feature_column.rename(feature_name, inplace=True)
         chw_data.add_feature(feature_name, feature_column)
-        feature_data = chw_data.get_features()
-        target_data = chw_data.get_targets()
-        result_scores = param_run(feature_data, target_data,
+        result_scores = param_run(chw_data.features, chw_data.targets,
                                   debug_label=feature_name)
         out_results.append(result_scores)
         chw_data.drop_feature(feature_name)

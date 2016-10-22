@@ -9,6 +9,7 @@ from util import (calculate_false_negatives, generate_n_rgb_colours,
                   replace_isodate, get_short_codes, get_split_and_balance,
                   list_index, print_title, round_up)
 
+from imblearn.over_sampling import ADASYN
 from joblib import Parallel, delayed
 import matplotlib
 from matplotlib.ticker import MultipleLocator
@@ -24,7 +25,8 @@ from sklearn.tree import DecisionTreeClassifier
 
 
 def param_run(feature_data, target_data, test_features=None, test_targets=None,
-              debug_label=None, cross_folds=10, repeat_test=False):
+              debug_label=None, cross_folds=10, repeat_test=False,
+              do_balance=False):
     results = {'values': []}
     test_type = 'Repetitions' if repeat_test else 'Cross Evaluation'
     debug_str = '[{}] '.format(debug_label) if debug_label else ''
@@ -41,6 +43,12 @@ def param_run(feature_data, target_data, test_features=None, test_targets=None,
             score = cross_validate_score(estimator, feature_data,
                                          target_data, cv=cross_folds)
         else:
+            if do_balance:
+                adasyn = ADASYN()
+                feature_data, target_data = adasyn.fit_sample(feature_data,
+                                                              target_data)
+                test_features, test_targets = adasyn.fit_sample(test_features,
+                                                                test_targets)
             score = repeat_validate_score(estimator, feature_data, target_data,
                                           test_features, test_targets)
         accuracy_report = (estimator_name, score['accuracy'].mean(),
@@ -337,7 +345,7 @@ def effect_of_day_data_experiment():
 def country_to_all_generalization_experiment(inverse=False):
     """Ability to Generalize Country Data"""
     inverse = (inverse and 'Inverse ') or ''
-    print_title('Running {}Region Generalization Experiment', '-', inverse)
+    print_title('Running {}Country Generalization Experiment', '-', inverse)
     region_data_size = 500
     countries = [key for key, val in chw_data.country.iteritems()
                  if val > region_data_size]
@@ -347,19 +355,20 @@ def country_to_all_generalization_experiment(inverse=False):
         col_select = {country: 1}
         feature_data = chw_data.get_features(col_select)
         target_data = chw_data.get_targets(col_select)
-        test_features = chw_data.get_features(col_filter=col_select,
-                                              exclude=True)
+        test_features = chw_data.get_features(col_select, exclude=True)
         test_targets = chw_data.get_targets(col_select, exclude=True)
         if not inverse:
             result_scores = param_run(feature_data, target_data,
                                       test_features=test_features,
                                       test_targets=test_targets,
-                                      debug_label=country, repeat_test=True)
+                                      debug_label=country, repeat_test=True,
+                                      do_balance=True)
         else:
             result_scores = param_run(test_features, test_targets,
                                       test_features=feature_data,
                                       test_targets=target_data,
-                                      debug_label=country, repeat_test=True)
+                                      debug_label=country, repeat_test=True,
+                                      do_balance=True)
         out_results.append(result_scores)
     countries = get_short_codes(countries)
     experiment = 'country' + ('_inverse' if inverse else '')
@@ -391,12 +400,14 @@ def sector_to_all_generalization_experiment(inverse=False):
             result_scores = param_run(feature_data, target_data,
                                       test_features=test_features,
                                       test_targets=test_targets,
-                                      debug_label=sector, repeat_test=True)
+                                      debug_label=sector, repeat_test=True,
+                                      do_balance=True)
         else:
             result_scores = param_run(test_features, test_targets,
                                       test_features=feature_data,
                                       test_targets=target_data,
-                                      debug_label=sector, repeat_test=True)
+                                      debug_label=sector, repeat_test=True,
+                                      do_balance=True)
         out_results.append(result_scores)
 
     experiment = 'sector' + ('_inverse' if inverse else '')
@@ -428,13 +439,13 @@ def project_to_all_generalization_experiment(inverse=False):
                                       test_features=test_features,
                                       test_targets=test_targets,
                                       debug_label=project_code,
-                                      repeat_test=True)
+                                      repeat_test=True, do_balance=True)
         else:
             result_scores = param_run(test_features, test_targets,
                                       test_features=feature_data,
                                       test_targets=target_data,
                                       debug_label=project_code,
-                                      repeat_test=True)
+                                      repeat_test=True, do_balance=True)
 
         out_results.append(result_scores)
 
@@ -482,7 +493,8 @@ def project_model_comparison_experiment():
                 result_scores = param_run(train_features, train_targets,
                                           test_features=test_features,
                                           test_targets=test_targets,
-                                          debug_label=label, repeat_test=True)
+                                          debug_label=label, repeat_test=True,
+                                          do_balance=True)
             else:
                 result_scores = {'stats': {'label': label}, 'values': ()}
                 print 'Too few classes'

@@ -521,6 +521,8 @@ def clean_dataset(dataset):
     dataset.drop_duplicates('userCode', inplace=True)
     # Replace blank sector fields with No info
     dataset.sector.fillna('No info', inplace=True)
+    # Replace NaN in country column with No info
+    dataset.country.fillna('Not Specified', inplace=True)
     # If in tests mode only let a fraction of data through
     return dataset.sample(frac=args.test) if args.test else dataset
 

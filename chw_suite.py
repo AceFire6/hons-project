@@ -26,7 +26,7 @@ from sklearn.tree import DecisionTreeClassifier
 
 def param_run(feature_data, target_data, test_features=None, test_targets=None,
               debug_label=None, cross_folds=10, repeat_test=False,
-              do_balance=False):
+              balance=True):
     too_few_classes = len(target_data.unique()) == 1
     if test_targets is not None:
         too_few_classes = too_few_classes or len(test_targets.unique()) == 1
@@ -46,18 +46,24 @@ def param_run(feature_data, target_data, test_features=None, test_targets=None,
     info_vals['label'] = debug_label
     results['stats'] = info_vals
 
+    if balance:
+        adasyn = ADASYN()
+        feature_data, target_data = adasyn.fit_sample(feature_data,
+                                                      target_data)
+        test_features, test_targets = adasyn.fit_sample(test_features,
+                                                        test_targets)
+        bal_str = ('\tBalanced to: (True/False) '
+                   'Train: {pos_train}/{neg_train} '
+                   'Test: {pos_test}/{neg_test}')
+        val_splits = get_split_and_balance(target_data, test_targets)
+        print (bal_str.format(**val_splits))
+
     for estimator_name, estimator in estimators.iteritems():
         print '\tStarting %s - %s' % (estimator_name, test_type)
         if not repeat_test:
             score = cross_validate_score(estimator, feature_data,
                                          target_data, cv=cross_folds)
         else:
-            if do_balance:
-                adasyn = ADASYN()
-                feature_data, target_data = adasyn.fit_sample(feature_data,
-                                                              target_data)
-                test_features, test_targets = adasyn.fit_sample(test_features,
-                                                                test_targets)
             score = repeat_validate_score(estimator, feature_data, target_data,
                                           test_features, test_targets)
         accuracy_report = (estimator_name, score['accuracy'].mean(),
@@ -376,14 +382,12 @@ def country_to_all_generalization_experiment(inverse=False):
             result_scores = param_run(feature_data, target_data,
                                       test_features=test_features,
                                       test_targets=test_targets,
-                                      debug_label=country, repeat_test=True,
-                                      do_balance=True)
+                                      debug_label=country, repeat_test=True)
         else:
             result_scores = param_run(test_features, test_targets,
                                       test_features=feature_data,
                                       test_targets=target_data,
-                                      debug_label=country, repeat_test=True,
-                                      do_balance=True)
+                                      debug_label=country, repeat_test=True)
         out_results.append(result_scores)
     countries = get_short_codes(countries)
     experiment = 'country' + ('_inverse' if inverse else '')
@@ -415,14 +419,12 @@ def sector_to_all_generalization_experiment(inverse=False):
             result_scores = param_run(feature_data, target_data,
                                       test_features=test_features,
                                       test_targets=test_targets,
-                                      debug_label=sector, repeat_test=True,
-                                      do_balance=True)
+                                      debug_label=sector, repeat_test=True)
         else:
             result_scores = param_run(test_features, test_targets,
                                       test_features=feature_data,
                                       test_targets=target_data,
-                                      debug_label=sector, repeat_test=True,
-                                      do_balance=True)
+                                      debug_label=sector, repeat_test=True)
         out_results.append(result_scores)
 
     experiment = 'sector' + ('_inverse' if inverse else '')
@@ -454,13 +456,13 @@ def project_to_all_generalization_experiment(inverse=False):
                                       test_features=test_features,
                                       test_targets=test_targets,
                                       debug_label=project_code,
-                                      repeat_test=True, do_balance=True)
+                                      repeat_test=True)
         else:
             result_scores = param_run(test_features, test_targets,
                                       test_features=feature_data,
                                       test_targets=target_data,
                                       debug_label=project_code,
-                                      repeat_test=True, do_balance=True)
+                                      repeat_test=True)
 
         out_results.append(result_scores)
 
@@ -511,8 +513,7 @@ def project_model_comparison_experiment():
                 result_scores = param_run(train_features, train_targets,
                                           test_features=test_features,
                                           test_targets=test_targets,
-                                          debug_label=label, repeat_test=True,
-                                          do_balance=True)
+                                          debug_label=label, repeat_test=True)
             else:
                 result_scores = {'stats': {'label': label}, 'values': ()}
                 print 'Too few classes'

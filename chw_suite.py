@@ -27,7 +27,11 @@ from sklearn.tree import DecisionTreeClassifier
 def param_run(feature_data, target_data, test_features=None, test_targets=None,
               debug_label=None, cross_folds=10, repeat_test=False,
               do_balance=False):
-    if len(target_data.unique()) == 1 or len(test_targets.unique()) == 1:
+    too_few_classes = len(target_data.unique()) == 1
+    if test_targets is not None:
+        too_few_classes = too_few_classes or len(test_targets.unique()) == 1
+
+    if too_few_classes:
         if args.test:
             print 'Too few classes, not running'
             return None

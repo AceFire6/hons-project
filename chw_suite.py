@@ -27,6 +27,11 @@ from sklearn.tree import DecisionTreeClassifier
 def param_run(feature_data, target_data, test_features=None, test_targets=None,
               debug_label=None, cross_folds=10, repeat_test=False,
               do_balance=False):
+    if len(target_data.unique()) == 1 or len(test_targets.unique()) == 1:
+        if args.test:
+            print 'Too few classes, not running'
+            return None
+
     results = {'values': []}
     test_type = 'Repetitions' if repeat_test else 'Cross Evaluation'
     debug_str = '[{}] '.format(debug_label) if debug_label else ''
@@ -164,6 +169,8 @@ def write_out_results(experiment, results, x_values, x_label, y_label,
     results_list = {}
     with open('%s-%s-info.txt' % (experiment, date), 'w') as info_file:
         for result in results:
+            if not result:
+                continue
             expr_label = '%s - ' % result['stats'].pop('label')
             info_file.write(expr_label + json.dumps(result['stats']) + '\n')
             for estimator, metrics in result['values']:

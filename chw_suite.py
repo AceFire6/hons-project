@@ -260,10 +260,12 @@ def fit_and_score(estimator, feature_data, target_data, train_indices=None,
 def repeat_validate_score(estimator, feature_data, target_data, test_features,
                           test_targets, repetitions=5):
     parallel = Parallel(n_jobs=-1)
-    results = parallel(delayed(fit_and_score)(
-        clone(estimator), feature_data, target_data,
-        test_features=test_features, test_targets=test_targets)
-                      for i in range(repetitions))
+    results = parallel(
+        delayed(fit_and_score)(
+            clone(estimator), feature_data, target_data,
+            test_features=test_features, test_targets=test_targets
+        ) for i in range(repetitions)
+    )
     scores = []
     false_negatives = []
     for score, false_negative in results:
@@ -277,9 +279,11 @@ def cross_validate_score(estimator, feature_data, target_data, cv=10):
     kfold = StratifiedKFold(n_splits=cv)
     parallel = Parallel(n_jobs=-1)
     split = kfold.split(feature_data, target_data)
-    results = parallel(delayed(fit_and_score)(
-        clone(estimator), feature_data, target_data, train, test)
-             for train, test in split)
+    results = parallel(
+        delayed(fit_and_score)(
+            clone(estimator), feature_data, target_data, train, test
+        ) for train, test in split
+    )
     scores = []
     false_negatives = []
     for score, false_negative in results:
@@ -338,7 +342,7 @@ def effect_of_day_data_experiment():
     # Go through all values of X (1-90)
     x_val_range = range(1, 91)
     for x in x_val_range:
-        x_col = ['nX%d' % i for i in range(x+1, 91)]
+        x_col = ['nX%d' % i for i in range(x + 1, 91)]
         feature_data = chw_data.get_features(drop_cols=chw_data.categories)
         feature_data = feature_data.drop(x_col, axis=1)
         target_data = chw_data.get_targets()
@@ -379,8 +383,8 @@ def country_to_all_generalization_experiment(inverse=False):
         out_results.append(result_scores)
     countries = get_short_codes(countries)
     experiment = 'country' + ('_inverse' if inverse else '')
-    write_out_results(experiment, out_results, countries, 'Country', 'Accuracy',
-                      draw=args.graph)
+    write_out_results(experiment, out_results, countries, 'Country',
+                      'Accuracy', draw=args.graph)
 
 
 def all_to_country_generalization_experiment():
@@ -480,7 +484,10 @@ def project_model_comparison_experiment():
         all_f = chw_data.get_features(col_select, exclude=True)
         all_t = chw_data.get_targets(col_select, exclude=True)
         all_data = (all_f, all_t)
-        country, sector = chw_data.get_columns(lambda x: all(x==1), col_select)
+        country, sector = chw_data.get_columns(
+            lambda x: all(x == 1),
+            col_select
+        )
 
         same_country = (all_f[all_f[country] == 1], all_t[all_f[country] == 1])
         same_sector = (all_f[all_f[sector] == 1], all_t[all_f[sector] == 1])

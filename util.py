@@ -3,6 +3,7 @@ import math
 import re
 
 import numpy
+import pandas
 import pycountry
 
 
@@ -28,8 +29,16 @@ def get_split_and_balance(train_targets, test_targets):
 
 def calculate_false_negatives(y_predict, y_actual, normalize=True):
     total = len(y_predict)
-    count = sum(1 for i in xrange(total)
-                if y_predict[i] == False and y_actual[i] == True)
+    if type(y_actual) == pandas.Series:
+        count = sum(
+            1 for i in xrange(total)
+            if y_predict[i] == False and y_actual.iloc[i] == True
+        )
+    else:
+        count = sum(
+            1 for i in xrange(total)
+            if y_predict[i] == False and y_actual[i] == True
+        )
     return float(count) / total if normalize else count
 
 

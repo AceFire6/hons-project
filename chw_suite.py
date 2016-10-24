@@ -46,7 +46,7 @@ def param_run(feature_data, target_data, test_features=None, test_targets=None,
     info_vals['label'] = debug_label
     results['stats'] = info_vals
 
-    if balance:
+    if balance and repeat_test:
         adasyn = ADASYN()
         feature_data, target_data = adasyn.fit_sample(feature_data,
                                                       target_data)

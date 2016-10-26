@@ -72,6 +72,9 @@ def get_short_codes(countries):
                 if country in c.name:
                     codes.append(c.alpha3)
                     continue
+            # Not a country - therefore Not Specified
+            if country == 'Not Specified':
+                codes.append('NS')
     return codes
 
 

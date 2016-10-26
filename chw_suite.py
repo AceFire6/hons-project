@@ -147,12 +147,13 @@ def draw_graph_from_file(experiment, split=False, x_ticks=list()):
                 file_scores[metric][classifier][0].append(score.mean())
                 file_scores[metric][classifier][1].append(score.std())
 
+    directory = '{}/{}/'.format(*args.graph.split('/')) if args.graph else ''
     file_name = config['file_name']
     for metric, result in file_scores.iteritems():
         if metric != 'accuracy' and not args.add_metrics:
             continue
         config['y_label'] = metric.replace('_', ' ').title()
-        config['file_name'] = metric + '_' + file_name
+        config['file_name'] = directory + metric + '_' + file_name
         draw_graph(result, **config)
         if split:
             f_n = 'false_negatives'
@@ -160,7 +161,8 @@ def draw_graph_from_file(experiment, split=False, x_ticks=list()):
                 values = {key: val}
                 if metric != f_n and f_n in file_scores.keys():
                     values['%s_%s' % (key, f_n)] = file_scores[f_n][key]
-                config['file_name'] = metric + '_' + key + '-' + file_name
+                config['file_name'] = (directory + metric + '_' +
+                                       key + '-' + file_name)
                 draw_graph(values, **config)
 
 

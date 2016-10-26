@@ -534,7 +534,8 @@ def project_model_comparison_experiment():
                 result_scores = {'stats': {'label': label}, 'values': ()}
                 print 'Too few classes'
             out_results.append(result_scores)
-    write_out_results('combo', out_results, project_codes, None, 'Accuracy')
+    write_out_results('combo', out_results, project_codes.keys(), None,
+                      'Accuracy')
 
 
 def clean_dataset(dataset):

@@ -222,8 +222,10 @@ def write_out_results(experiment, results, x_values, x_label, y_label,
 def draw_table(data, projects, html=False):
     headings = ('Project Code', 'Model Constraint', 'Relative Accuracy',
                 'Accuracy')
-    head_template = ('<tr>%s</tr>\n' % ('<th>%s</th>' * len(headings))
-                     if html else ('| %s ' * len(headings)) + '|\n')
+    head_template = (
+        '<tr class="{_class}">%s</tr>\n' % ('<th>%s</th>' * len(headings))
+        if html else ('| %s ' * len(headings)) + '|\n'
+    )
     row_template = head_template.replace('th', 'td') if html else head_template
 
     model_constraints = ['All Data', 'Same Country',
@@ -234,7 +236,7 @@ def draw_table(data, projects, html=False):
         if html:
             table = '<thead>%s</thead>\n<tbody>\n' % (head_template % headings)
         else:
-            table = head_template % headings
+            table = (head_template % headings).format(_class='')
         constraint_index = 0
         project_index = 0
         base_accuracy = 0
@@ -248,10 +250,17 @@ def draw_table(data, projects, html=False):
             else:
                 relative_accuracy = accuracy - base_accuracy
 
+            _class = (
+                (relative_accuracy and
+                 ('pos' if relative_accuracy > 0 else 'neg')) or 'neutral'
+            )
+
             relative_accuracy = '{:+.3f}'.format(relative_accuracy)
             accuracy = '{:.3f}'.format(accuracy)
-            table += row_template % (project, label,
-                                     relative_accuracy, accuracy)
+            this_row = row_template % (project, label,
+                                       relative_accuracy, accuracy)
+
+            table += this_row.format(_class=_class)
             constraint_index = (constraint_index + 1) % 4
             if constraint_index == 0:
                 project_index += 1

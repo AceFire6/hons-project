@@ -56,6 +56,7 @@ def param_run(feature_data, target_data, test_features=None, test_targets=None,
                    'Train: {pos_train}/{neg_train} '
                    'Test: {pos_test}/{neg_test}')
         val_splits = get_split_and_balance(target_data, test_targets)
+        results['balanced_stats'] = val_splits
         print (bal_str.format(**val_splits))
 
     for estimator_name, estimator in estimators.iteritems():
@@ -183,6 +184,10 @@ def write_out_results(experiment, results, x_values, x_label, y_label,
                 continue
             expr_label = '%s - ' % result['stats'].pop('label')
             info_file.write(expr_label + json.dumps(result['stats']) + '\n')
+            if 'balanced_stats' in result:
+                info_file.write(
+                    expr_label + json.dumps(result['balanced_stats']) + '\n'
+                )
             for estimator, metrics in result['values']:
                 for metric, values in metrics.iteritems():
                     if metric not in results_list:

@@ -2,6 +2,7 @@ import argparse
 from datetime import datetime
 import itertools
 import json
+import math
 import sys
 
 from experiment_data import ExperimentData
@@ -106,7 +107,9 @@ def draw_graph(graph_scores, x_values, y_lim=(0, 1), x_lim=None, y_label='',
     plt.gca().yaxis.set_major_locator(MultipleLocator(base=0.1))
     if x_tick_indices or type(x_values[0]) not in [int, float]:
         labels = list_index(x_tick_indices, x_values)
-        shorten_x_labels = any(len(str(i)) > max_x_len for i in labels)
+        shorten_x_labels = (
+            any(len(str(i)) > max_x_len for i in labels) and len(labels) >= 5
+        )
         if shorten_x_labels:
             with open(file_name.replace('png', 'txt'), 'w') as label_f:
                 x_map = [(i + 1, val) for i, val in enumerate(labels)]
@@ -361,6 +364,42 @@ def added_features_performance_experiment():
                       draw=args.graph)
 
 
+def modified_features_experiment():
+    """Effect of Modifying Features"""
+    def project_normalize(dataset, feature_set):
+        ds = dataset.copy()
+        feature_set = [i for i in feature_set if not i.startswith('nX')]
+        x_nums = ['X%s' % i for i in range(1, 91)]
+        grouped = ds[['projectCode'] + x_nums].groupby('projectCode')
+        g_normalized = grouped.apply(
+            lambda g: g[x_nums] / math.sqrt((g[x_nums] ** 2).sum(axis=1).sum())
+        )
+        for col in x_nums:
+            ds[col] = g_normalized[col]
+        return ds[x_nums + feature_set]
+
+    print_title('Running Modified Features Experiment', '-')
+
+    labels = []
+    out_results = []
+    features = chw_data.feature_labels
+    modified_features = {
+        'Binarized': lambda x: x[features] > 0,
+        'Project_Normalize': (
+            lambda x: project_normalize(x, features)
+        ),
+    }
+
+    for name, modifier in modified_features.iteritems():
+        feature_data = modifier(chw_data.dataset)
+        target_data = chw_data.get_targets()
+        result_scores = param_run(feature_data, target_data)
+        labels.append(name)
+        out_results.append(result_scores)
+    write_out_results('modify', out_results, labels, 'Modifier', 'Accuracy',
+                      draw=args.graph)
+
+
 def effect_of_day_data_experiment():
     """Effect of Number of Days Included (1-90)"""
     print_title('Running Effect of Day Experiment', '-')
@@ -554,6 +593,7 @@ if __name__ == '__main__':
         all_data_performance_experiment,
         added_features_performance_experiment,
         effect_of_day_data_experiment,
+        modified_features_experiment,
         country_to_all_generalization_experiment,
         all_to_country_generalization_experiment,
         sector_to_all_generalization_experiment,

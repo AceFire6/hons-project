@@ -658,7 +658,7 @@ if __name__ == '__main__':
 
     tree = DecisionTreeClassifier(class_weight='balanced')
     forest = RandomForestClassifier(class_weight='balanced')
-    svm = SVC(class_weight='balanced', cache_size=1000)
+    svm = SVC(C=100, class_weight='balanced', cache_size=1000)
     nn = MLPClassifier(hidden_layer_sizes=(50,), max_iter=1000)
     ridge = RidgeClassifier(class_weight='balanced')
 

@@ -557,6 +557,16 @@ def project_model_comparison_experiment():
 
     for project_code in project_codes:
         col_select = {'projectCode': project_code}
+
+        test_features = chw_data.get_features(col_select)
+        test_targets = chw_data.get_targets(col_select)
+
+        test_count = test_targets.value_counts().values
+        if any(test_count < 50):
+            print 'Skipping project %d: Too few values' % project_code
+            print test_count
+            continue
+
         all_f = chw_data.get_features(col_select, exclude=True)
         all_t = chw_data.get_targets(col_select, exclude=True)
         all_data = (all_f, all_t)
@@ -571,15 +581,22 @@ def project_model_comparison_experiment():
             all_f[(all_f[country] == 1) & (all_f[sector] == 1)],
             all_t[(all_f[country] == 1) & (all_f[sector] == 1)],
         )
-        test_features = chw_data.get_features(col_select)
-        test_targets = chw_data.get_targets(col_select)
+
+        both_count = (same_country[1].value_counts().values +
+                      same_sector[1].value_counts().values)
+        if any(both_count < 100):
+            print 'Skipping project %d: Too few values' % project_code
+            print test_count
+            continue
+
         training_sets = {'All Data': all_data, 'Same Country': same_country,
                          'Same Sector': same_sector,
                          'Same Country & Sector': same_country_and_sector}
         for name in training_order:
             label = '%d - %s' % (project_code, name)
             train_features, train_targets = training_sets[name]
-            if len(train_targets.value_counts()) > 1:
+            train_count = train_targets.value_counts().values
+            if all(train_count > 50):
                 result_scores = param_run(train_features, train_targets,
                                           test_features=test_features,
                                           test_targets=test_targets,

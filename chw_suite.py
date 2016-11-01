@@ -6,9 +6,9 @@ import math
 import sys
 
 from experiment_data import ExperimentData
-from util import (calculate_false_negatives, generate_n_rgb_colours,
-                  replace_isodate, get_short_codes, get_split_and_balance,
-                  list_index, print_title, round_up)
+from util import (calculate_false_negatives_and_positives,
+                  generate_n_rgb_colours, replace_isodate, get_short_codes,
+                  get_split_and_balance, list_index, print_title, round_up)
 
 from imblearn.over_sampling import ADASYN
 from joblib import Parallel, delayed
@@ -72,8 +72,11 @@ def param_run(feature_data, target_data, test_features=None, test_targets=None,
                            score['accuracy'].std())
         fn_report = (estimator_name, score['false_negatives'].mean(),
                      score['false_negatives'].std())
+        fp_report = (estimator_name, score['false_positives'].mean(),
+                     score['false_positives'].std())
         print '\t\t%s Accuracy: %0.2f (+/- %0.3f)' % accuracy_report
         print '\t\t%s False Negatives: %0.2f (+/- %0.3f)' % fn_report
+        print '\t\t%s False Positives: %0.2f (+/- %0.3f)' % fp_report
         results['values'].append((estimator_name, score))
     return results
 
@@ -150,7 +153,8 @@ def draw_graph_from_file(experiment, split=False, x_ticks=list()):
                 file_scores[metric][classifier][0].append(score.mean())
                 file_scores[metric][classifier][1].append(score.std())
 
-    directory = '{}/{}/'.format(*args.graph.split('/')) if args.graph else ''
+    path_split = args.graph.split('/') if args.graph else ''
+    directory = '{}/{}/'.format(*path_split) if len(path_split) > 1 else ''
     file_name = config['file_name']
     for metric, result in file_scores.iteritems():
         if metric != 'accuracy' and not args.add_metrics:
@@ -282,8 +286,9 @@ def fit_and_score(estimator, feature_data, target_data, train_indices=None,
     else:
         estimator.fit(feature_data, target_data)
     classification = estimator.predict(test_features)
-    false_negatives = calculate_false_negatives(classification, test_targets)
-    return estimator.score(test_features, test_targets), false_negatives
+    false_counts = calculate_false_negatives_and_positives(classification,
+                                                           test_targets)
+    return estimator.score(test_features, test_targets), false_counts
 
 
 def repeat_validate_score(estimator, feature_data, target_data, test_features,
@@ -297,11 +302,16 @@ def repeat_validate_score(estimator, feature_data, target_data, test_features,
     )
     scores = []
     false_negatives = []
-    for score, false_negative in results:
+    false_positives = []
+    for score, false_counts in results:
         scores.append(score)
-        false_negatives.append(false_negative)
-    return {'accuracy': numpy.array(scores),
-            'false_negatives': numpy.array(false_negatives)}
+        false_negatives.append(false_counts['negatives'])
+        false_positives.append(false_counts['positives'])
+    return {
+        'accuracy': numpy.array(scores),
+        'false_negatives': numpy.array(false_negatives),
+        'false_positives': numpy.array(false_positives),
+    }
 
 
 def cross_validate_score(estimator, feature_data, target_data, cv=10):
@@ -315,11 +325,16 @@ def cross_validate_score(estimator, feature_data, target_data, cv=10):
     )
     scores = []
     false_negatives = []
-    for score, false_negative in results:
+    false_positives = []
+    for score, false_counts in results:
         scores.append(score)
-        false_negatives.append(false_negative)
-    return {'accuracy': numpy.array(scores),
-            'false_negatives': numpy.array(false_negatives)}
+        false_negatives.append(false_counts['negatives'])
+        false_positives.append(false_counts['positives'])
+    return {
+        'accuracy': numpy.array(scores),
+        'false_negatives': numpy.array(false_negatives),
+        'false_positives': numpy.array(false_positives),
+    }
 
 
 def all_data_performance_experiment():

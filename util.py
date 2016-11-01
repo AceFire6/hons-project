@@ -27,19 +27,31 @@ def get_split_and_balance(train_targets, test_targets):
             'neg_test': test_tally.get(False, 0)}
 
 
-def calculate_false_negatives(y_predict, y_actual, normalize=True):
+def calculate_false_negatives_and_positives(y_predict, y_actual,
+                                            normalize=True):
     total = len(y_predict)
     if type(y_actual) == pandas.Series:
-        count = sum(
+        neg_count = sum(
             1 for i in xrange(total)
             if y_predict[i] == False and y_actual.iloc[i] == True
         )
+        pos_count = sum(
+            1 for i in xrange(total)
+            if y_predict[i] == True and y_actual.iloc[i] == False
+        )
     else:
-        count = sum(
+        neg_count = sum(
             1 for i in xrange(total)
             if y_predict[i] == False and y_actual[i] == True
         )
-    return float(count) / total if normalize else count
+        pos_count = sum(
+            1 for i in xrange(total)
+            if y_predict[i] == True and y_actual[i] == False
+        )
+    return {
+        'positives': float(pos_count) / total if normalize else pos_count,
+        'negatives': float(neg_count) / total if normalize else neg_count,
+    }
 
 
 def round_up(x, nearest=1):

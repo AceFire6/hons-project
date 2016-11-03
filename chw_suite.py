@@ -154,7 +154,7 @@ def draw_graph_from_file(experiment, split=False, x_ticks=list()):
                 file_scores[metric][classifier][0].append(score.mean())
                 file_scores[metric][classifier][1].append(score.std())
 
-    path_split = args.graph.split('/') if args.graph else ''
+    path_split = experiment.split('/') if experiment else ''
     directory = '{}/{}/'.format(*path_split) if len(path_split) > 1 else ''
     file_name = config['file_name']
     for metric, result in file_scores.iteritems():

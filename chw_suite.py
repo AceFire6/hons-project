@@ -7,8 +7,9 @@ import sys
 
 from experiment_data import ExperimentData
 from util import (calculate_false_negatives_and_positives,
-                  generate_n_rgb_colours, replace_isodate, get_short_codes,
-                  get_split_and_balance, list_index, print_title, round_up)
+                  generate_n_rgb_colours, get_json_in_subfolders,
+                  get_short_codes, get_split_and_balance, list_index,
+                  print_title, replace_isodate, round_up)
 
 from imblearn.over_sampling import ADASYN
 from joblib import Parallel, delayed
@@ -172,6 +173,20 @@ def draw_graph_from_file(experiment, split=False, x_ticks=list()):
                 config['file_name'] = (directory + metric + '_' +
                                        key + '-' + file_name)
                 draw_graph(values, **config)
+
+
+def find_data_and_draw_graphs(graph_folder):
+    json_files = get_json_in_subfolders(
+        graph_folder, exclude_strings=['combo']
+    )
+    for json_file in json_files:
+        x_ticks = []
+        if 'days' in json_file:
+            x_ticks = [1, 4, 9, 14, 19, 29, 39, 49, 59, 69, 79, 89]
+
+        draw_graph_from_file(
+            json_file.replace('-config.json', ''), x_ticks=x_ticks
+        )
 
 
 def write_out_results(experiment, results, x_values, x_label, y_label,
@@ -675,6 +690,9 @@ if __name__ == '__main__':
                         help='Choose which experiments to run as list',)
     parser.add_argument('-g', '--graph', dest='graph', nargs='?',
                         default=False, help='Graph values from experiment')
+    parser.add_argument('-G', '--graph-all', dest='graph_folder',
+                        help=('Generate graphs for each *-config.json'
+                              ' in the folder specified'))
     parser.add_argument('-T', '--draw-table', dest='table_file',
                         help='Generate HTML table from the specified file')
     parser.add_argument('-f', '--file', dest='file_repl',
@@ -731,6 +749,8 @@ if __name__ == '__main__':
             print '%d. %s' % (i, experiment_functions[i].__doc__)
     elif args.graph:
         draw_graph_from_file(args.graph, args.split, args.x_ticks)
+    elif args.graph_folder:
+        find_data_and_draw_graphs(args.graph_folder)
     elif args.table_file:
         draw_table(args.table_file)
     elif args.experiments:

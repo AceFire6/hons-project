@@ -127,6 +127,7 @@ def draw_graph(graph_scores, x_values, y_lim=(0, 1), x_lim=None, y_label='',
     plt.xlim(x_lim)
     plt.ylabel(y_label)
     plt.xlabel(x_label)
+    plt.tight_layout()
     plt.savefig(file_name)
     plt.clf()
 
@@ -195,7 +196,8 @@ def write_out_results(experiment, results, x_values, x_label, y_label,
             info_file.write(expr_label + json.dumps(result['stats']) + '\n')
             if 'balanced_stats' in result:
                 info_file.write(
-                    expr_label + json.dumps(result['balanced_stats']) + '\n'
+                    '\t' + expr_label +
+                    json.dumps(result['balanced_stats']) + '\n'
                 )
             for estimator, metrics in result['values']:
                 for metric, values in metrics.iteritems():

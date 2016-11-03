@@ -1,5 +1,6 @@
 import colorsys
 import math
+import os
 import re
 
 import numpy
@@ -97,3 +98,28 @@ def replace_isodate(file_name, replace_str):
     if re.search(date_time_regex, file_name):
         return re.sub(date_time_regex, replace_str, file_name)
     return file_name
+
+
+def get_json_in_subfolders(parent_folder, exclude_strings=list()):
+    if not os.path.isdir(parent_folder):
+        return None
+
+    file_list = os.listdir(parent_folder)
+    json_files = map(
+        lambda f_json: os.path.join(parent_folder, f_json),  # Complete path
+        filter(lambda x: x.endswith('.json'), file_list),  # Filter on .json
+    )
+    subfolders = filter(
+        lambda x: os.path.isdir(os.path.join(parent_folder, x)), file_list
+    )
+
+    if subfolders:
+        for folder in subfolders:
+            json_files += get_json_in_subfolders(
+                os.path.join(parent_folder, folder)
+            )
+
+    for exclude_string in exclude_strings:
+        json_files = filter(lambda x: exclude_string not in x, json_files)
+
+    return json_files

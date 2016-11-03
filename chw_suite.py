@@ -228,53 +228,81 @@ def write_out_results(experiment, results, x_values, x_label, y_label,
     return dict(config, results=results_list)
 
 
-def draw_table(data, projects, html=False):
-    headings = ('Project Code', 'Model Constraint', 'Relative Accuracy',
-                'Accuracy')
-    head_template = (
-        '<tr class="{_class}">%s</tr>\n' % ('<th>%s</th>' * len(headings))
-        if html else ('| %s ' * len(headings)) + '|\n'
+def draw_table(data_file):
+    with open(data_file) as data_in:
+        data = json.loads(data_in.readline())
+
+    projects = data.get('x_values', [])
+    classifiers = data['results']['accuracy'].keys()
+
+    headings = (
+        'Project Code', 'Model Constraint', 'Relative', 'True',
+    ) + (('Relative', 'True') * (len(classifiers) - 1))
+
+    head_template = '<tr>%s</tr>\n' % ('<th>%s</th>' * len(headings))
+    row_template = head_template.replace('th', 'td')
+
+    model_constraints = (
+        'All Data', 'Same Country', 'Same Sector', 'Same Country & Sector',
     )
-    row_template = head_template.replace('th', 'td') if html else head_template
 
-    model_constraints = ['All Data', 'Same Country',
-                         'Same Sector', 'Same Country & Sector']
+    restruct = {}
+    for metric, results in data['results'].iteritems():
+        metric_struct = restruct[metric] = {}
+        for classifier, values in results.iteritems():
+            constraint_index = 0
+            project_index = 0
+            base_accuracy = 0
+            for value in values:
+                project = projects[project_index]
+                constraint = model_constraints[constraint_index]
 
-    for name, values in data.iteritems():
-        print 'Table %s' % name
-        if html:
-            table = '<thead>%s</thead>\n<tbody>\n' % (head_template % headings)
-        else:
-            table = (head_template % headings).format(_class='')
-        constraint_index = 0
-        project_index = 0
-        base_accuracy = 0
-        for value in values:
-            project = projects[project_index]
-            label = model_constraints[constraint_index]
-            accuracy = (sum(value) / len(value)) * 100 if value else 0
-            relative_accuracy = 0
-            if constraint_index == 0:
-                base_accuracy = accuracy
-            else:
-                relative_accuracy = accuracy - base_accuracy
+                if project not in metric_struct:
+                    metric_struct[project] = {}
 
-            _class = (
-                (relative_accuracy and
-                 ('pos' if relative_accuracy > 0 else 'neg')) or 'neutral'
-            )
+                if constraint not in metric_struct[project]:
+                    metric_struct[project][constraint] = ()
 
-            relative_accuracy = '{:+.3f}'.format(relative_accuracy)
-            accuracy = '{:.3f}'.format(accuracy)
-            this_row = row_template % (project, label,
-                                       relative_accuracy, accuracy)
+                accuracy = (sum(value) / len(value)) * 100 if value else 0
+                relative_accuracy = 0
+                if constraint_index == 0:
+                    base_accuracy = accuracy
+                else:
+                    relative_accuracy = accuracy - base_accuracy
 
-            table += this_row.format(_class=_class)
-            constraint_index = (constraint_index + 1) % 4
-            if constraint_index == 0:
-                project_index += 1
-        html_temp = '<table class="pure-table pure-table-bordered">%s</table>'
-        print html_temp % (table + '</tbody>') if html else table
+                relative_accuracy = '{:+.3f}'.format(relative_accuracy)
+                accuracy = '{:.3f}'.format(accuracy)
+
+                # # To test ordering
+                # metric_struct[project][constraint] += (
+                #     (classifier, relative_accuracy, accuracy)
+                # )
+
+                metric_struct[project][constraint] += (
+                    relative_accuracy, accuracy
+                )
+
+                constraint_index = (constraint_index + 1) % 4
+                if constraint_index == 0:
+                    project_index += 1
+
+    for metric, project_data in restruct.iteritems():
+        print 'Table for %s' % metric
+        table_inner = '<thead>\n%s</thead>\n<tbody>\n' % (
+            head_template % headings
+        )
+
+        for project, constraint_data in project_data.iteritems():
+            for constraint, c_results in constraint_data.iteritems():
+                table_inner += row_template % (
+                    (project, constraint) + c_results
+                )
+
+        table_tag = (
+            '<table class="pure-table pure-table-bordered">\n%s\n</table>'
+        )
+        print classifiers
+        print table_tag % (table_inner + '</tbody>')
 
 
 def fit_and_score(estimator, feature_data, target_data, train_indices=None,
@@ -557,6 +585,7 @@ def project_model_comparison_experiment():
 
     project_codes = chw_data.get_column_values('projectCode', top_n=10)
 
+    projects = []
     for project_code in project_codes:
         col_select = {'projectCode': project_code}
 
@@ -584,12 +613,16 @@ def project_model_comparison_experiment():
             all_t[(all_f[country] == 1) & (all_f[sector] == 1)],
         )
 
-        both_count = (same_country[1].value_counts().values +
-                      same_sector[1].value_counts().values)
-        if any(both_count < 100):
+        both_count_too_small = (
+            any(same_country[1].value_counts().values < 50) or
+            any(same_sector[1].value_counts().values < 50)
+        )
+        if both_count_too_small:
             print 'Skipping project %d: Too few values' % project_code
             print test_count
             continue
+
+        projects.append(project_code)
 
         training_sets = {'All Data': all_data, 'Same Country': same_country,
                          'Same Sector': same_sector,
@@ -607,8 +640,7 @@ def project_model_comparison_experiment():
                 result_scores = {'stats': {'label': label}, 'values': ()}
                 print 'Too few classes'
             out_results.append(result_scores)
-    write_out_results('combo', out_results, project_codes.keys(), None,
-                      'Accuracy')
+    write_out_results('combo', out_results, projects, None, 'Accuracy')
 
 
 def clean_dataset(dataset):
@@ -643,6 +675,8 @@ if __name__ == '__main__':
                         help='Choose which experiments to run as list',)
     parser.add_argument('-g', '--graph', dest='graph', nargs='?',
                         default=False, help='Graph values from experiment')
+    parser.add_argument('-T', '--draw-table', dest='table_file',
+                        help='Generate HTML table from the specified file')
     parser.add_argument('-f', '--file', dest='file_repl',
                         help='Replace date in generated file names')
     parser.add_argument('-x', dest='x_ticks', type=int, nargs='*', default=[],
@@ -697,6 +731,8 @@ if __name__ == '__main__':
             print '%d. %s' % (i, experiment_functions[i].__doc__)
     elif args.graph:
         draw_graph_from_file(args.graph, args.split, args.x_ticks)
+    elif args.table_file:
+        draw_table(args.table_file)
     elif args.experiments:
         args.graph = args.graph is None
         for exp_no in range(len(experiment_functions)):

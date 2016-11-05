@@ -101,7 +101,7 @@ def effect_of_day_data_experiment():
     print_title('Running Effect of Day Experiment', '-')
     out_results = []
     # Go through all values of X (1-90)
-    x_val_range = range(1, 91)
+    x_val_range = args.x_ticks if args.x_ticks else range(1, 91)
     for x in x_val_range:
         x_col = ['nX%d' % i for i in range(x + 1, 91)]
         feature_data = chw_data.get_features(drop_cols=chw_data.categories)

@@ -70,20 +70,19 @@ def draw_table(data_file):
                 if constraint not in metric_struct[project]:
                     metric_struct[project][constraint] = ()
 
-                accuracy = (sum(value) / len(value)) * 100 if value else 0
-                relative_accuracy = 0
-                if constraint_index == 0:
-                    base_accuracy = accuracy
+                if value:
+                    accuracy = (sum(value) / len(value)) * 100
+                    relative_accuracy = 0
+                    if constraint_index == 0:
+                        base_accuracy = accuracy
+                    else:
+                        relative_accuracy = accuracy - base_accuracy
+
+                    relative_accuracy = '{:+.3f}'.format(relative_accuracy)
+                    accuracy = '{:.3f}'.format(accuracy)
                 else:
-                    relative_accuracy = accuracy - base_accuracy
-
-                relative_accuracy = '{:+.3f}'.format(relative_accuracy)
-                accuracy = '{:.3f}'.format(accuracy)
-
-                # # To test ordering
-                # metric_struct[project][constraint] += (
-                #     (classifier, relative_accuracy, accuracy)
-                # )
+                    relative_accuracy = 'N/A'
+                    accuracy = 'N/A'
 
                 metric_struct[project][constraint] += (
                     relative_accuracy, accuracy
@@ -99,14 +98,16 @@ def draw_table(data_file):
             head_template % headings
         )
 
-        for project, constraint_data in project_data.iteritems():
-            for constraint, c_results in constraint_data.iteritems():
+        for project in projects:
+            for constraint in model_constraints:
                 table_inner += row_template % (
-                    (project, constraint) + c_results
+                    (project, constraint) + project_data[project][constraint]
                 )
 
         table_tag = (
-            '<table class="pure-table pure-table-bordered">\n%s\n</table>'
+            '<table class="pure-table pure-table-bordered combo">\n'
+            '%s\n'
+            '</table>'
         )
         print classifiers
         print table_tag % (table_inner + '</tbody>')

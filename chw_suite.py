@@ -3,6 +3,7 @@ import itertools
 import math
 import matplotlib
 
+import numpy
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import RidgeClassifier
 from sklearn.neural_network import MLPClassifier
@@ -302,8 +303,16 @@ def project_model_comparison_experiment():
                     debug_label=label, repeat_test=True,
                 )
             else:
-                result_scores = {'stats': {'label': label}, 'values': ()}
-                print 'Too few classes'
+                result_scores = (
+                    {'stats': {'label': label},
+                     'values': [
+                         (est, {
+                             'false_positives': numpy.array([]),
+                             'accuracy': numpy.array([]),
+                             'false_negatives': numpy.array([]),
+                         }) for est in exp.estimators.keys()
+                     ]}, {})
+                print '\tToo few classes'
             out_results.append(result_scores)
     exp.write_out_results('combo', out_results, projects, None, 'Accuracy')
 

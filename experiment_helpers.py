@@ -1,6 +1,7 @@
 import json
 import sys
 from datetime import datetime
+import joblib
 from joblib import Parallel, delayed
 from matplotlib import pyplot as plt
 from matplotlib.ticker import MultipleLocator
@@ -29,7 +30,9 @@ def fit_and_score(estimator, feature_data, target_data,
     classification = estimator.predict(test_features)
     false_counts = calculate_false_negatives_and_positives(classification,
                                                            test_targets)
-    return estimator.score(test_features, test_targets), false_counts
+    return (
+        estimator, estimator.score(test_features, test_targets), false_counts
+    )
 
 
 def draw_table(data_file):
@@ -118,10 +121,15 @@ def repeat_validate_score(estimator, feature_data, target_data,
             test_features=test_features, test_targets=test_targets
         ) for i in range(repetitions)
     )
+    best_estimator = None
+    best_score = -1
     scores = []
     false_negatives = []
     false_positives = []
-    for score, false_counts in results:
+    for estimator, score, false_counts in results:
+        if score > best_score:
+            best_estimator = estimator
+            best_score = score
         scores.append(score)
         false_negatives.append(false_counts['negatives'])
         false_positives.append(false_counts['positives'])
@@ -129,6 +137,12 @@ def repeat_validate_score(estimator, feature_data, target_data,
         'accuracy': numpy.array(scores),
         'false_negatives': numpy.array(false_negatives),
         'false_positives': numpy.array(false_positives),
+        'misc': {
+            'best_estimator': {
+                'estimator': best_estimator,
+                'score': best_score,
+            }
+        }
     }
 
 
@@ -142,10 +156,15 @@ def cross_validate_score(estimator, feature_data, target_data,
             clone(estimator), feature_data, target_data, train, test
         ) for train, test in split
     )
+    best_estimator = None
+    best_score = -1
     scores = []
     false_negatives = []
     false_positives = []
-    for score, false_counts in results:
+    for estimator, score, false_counts in results:
+        if score > best_score:
+            best_estimator = estimator
+            best_score = score
         scores.append(score)
         false_negatives.append(false_counts['negatives'])
         false_positives.append(false_counts['positives'])
@@ -153,6 +172,12 @@ def cross_validate_score(estimator, feature_data, target_data,
         'accuracy': numpy.array(scores),
         'false_negatives': numpy.array(false_negatives),
         'false_positives': numpy.array(false_positives),
+        'misc': {
+            'best_estimator': {
+                'estimator': best_estimator,
+                'score': best_score,
+            }
+        }
     }
 
 
@@ -203,6 +228,7 @@ class ExperimentHelper(object):
             results['balanced_stats'] = val_splits
             print (bal_str.format(**val_splits))
 
+        best_estimator = {'obj': None, 'score': -1, 'name': ''}
         for estimator_name, estimator in self.estimators.iteritems():
             print '\tStarting %s - %s' % (estimator_name, test_type)
             if not repeat_test:
@@ -214,6 +240,12 @@ class ExperimentHelper(object):
                     estimator, feature_data, target_data,
                     test_features, test_targets,
                 )
+            misc = score.pop('misc')
+            if best_estimator['score'] < misc['best_estimator']['score']:
+                best_estimator['obj'] = misc['best_estimator']['estimator']
+                best_estimator['score'] = misc['best_estimator']['score']
+                best_estimator['name'] = estimator_name
+
             accuracy_report = (estimator_name, score['accuracy'].mean(),
                                score['accuracy'].std())
             fn_report = (estimator_name, score['false_negatives'].mean(),
@@ -224,7 +256,8 @@ class ExperimentHelper(object):
             print '\t\t%s False Negatives: %0.2f (+/- %0.3f)' % fn_report
             print '\t\t%s False Positives: %0.2f (+/- %0.3f)' % fp_report
             results['values'].append((estimator_name, score))
-        return results
+        print '\tBest estimator: %s' % best_estimator['name']
+        return results, best_estimator
 
     def draw_graph(self, graph_scores, x_values, y_lim=(0, 1), x_lim=None,
                    y_label='', x_label='', x_tick_indices=None,
@@ -349,10 +382,13 @@ class ExperimentHelper(object):
         }
 
         results_list = {}
+        overall_best_est = {'name': '', 'score': -1, 'obj': None}
         with open('%s-%s-info.txt' % (experiment, date), 'w') as info_file:
-            for result in results:
+            for result, best_estimator in results:
                 if not result:
                     continue
+                if best_estimator.get('score', -1) > overall_best_est['score']:
+                    overall_best_est = best_estimator
                 expr_label = '%s - ' % result['stats'].pop('label')
                 info_file.write(
                     expr_label + json.dumps(result['stats']) + '\n'
@@ -372,6 +408,10 @@ class ExperimentHelper(object):
                             )
                         else:
                             results_list[metric][estimator] = [values.tolist()]
+        joblib.dump(
+            overall_best_est,
+            '%s-%s-est.pkl' % (experiment, overall_best_est['name']),
+        )
 
         with open('%s-%s-config.json' % (experiment, date), 'w') as config_f:
             config_f.write(json.dumps(dict(config, results=results_list)))

@@ -276,12 +276,13 @@ class ExperimentHelper(object):
         x_lim = x_lim or (0, round_up(x_range[-1]))
 
         plt.ioff()
+        plt.rc('font', size='14')
         plt.grid(grid)
         for graph_label, graph_vals in graph_scores.iteritems():
             y_vals, y_err = list_index(x_tick_indices, *graph_vals)
             plt.errorbar(x_range, y_vals, yerr=y_err, fmt=next(self.styles),
-                         c=next(self.colours), linewidth=1.5, markersize=7,
-                         markeredgewidth=1)
+                         c=next(self.colours), linewidth=3.5, markersize=10,
+                         markeredgewidth=1.5)
 
             legend_loc = (
                 legend_loc and (4 if all(i > 0.2 for i in y_vals) else 0)
@@ -304,11 +305,11 @@ class ExperimentHelper(object):
         else:
             plt.gca().xaxis.set_major_locator(MultipleLocator(base=1.0))
 
-        plt.legend(legend, loc=legend_loc, fontsize='small', labelspacing=0.2)
+        plt.legend(legend, loc=legend_loc, fontsize='16', labelspacing=0.0)
         plt.ylim(y_lim)
         plt.xlim(x_lim)
-        plt.ylabel(y_label)
-        plt.xlabel(x_label)
+        plt.ylabel(y_label, fontsize='x-large')
+        plt.xlabel(x_label, fontsize='x-large')
         plt.tight_layout()
         plt.savefig(file_name)
         plt.clf()

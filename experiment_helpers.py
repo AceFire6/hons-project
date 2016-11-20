@@ -367,6 +367,10 @@ class ExperimentHelper(object):
                     self.draw_graph(values, **config)
 
     def find_data_and_draw_graphs(self, graph_folder):
+        """Recursively walk the subfolders of `graph_folder` and get all
+        json files. The files are assumed to be experiment data files and are
+        then graphed.
+        """
         json_files = get_json_in_subfolders(
             graph_folder, exclude_strings=['combo']
         )

@@ -114,6 +114,11 @@ class ExperimentData(object):
         return grouped_columns.to_dict()
 
     def get_columns(self, func, col_filter=None):
+        """Get the columns where the `func` evaluates to True filtered
+        according to the `col_filter` dictionary.
+
+        :return:list of column names that fit the criteria.
+        """
         indices = self.get_indices(col_filter or {})
         data = self.dataset[indices] if (indices is not None) else self.dataset
         return [label for label, val in data.apply(func).iteritems() if val]

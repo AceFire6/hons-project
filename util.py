@@ -14,6 +14,11 @@ def generate_n_rgb_colours(n, saturation=0.34, value=0.58):
 
 
 def get_split_and_balance(train_targets, test_targets):
+    """Use the test and training targets to determine the size of each set
+    and calculate the balance of each dataset.
+
+    :return:Dictionary with the test and train splits and balance information.
+    """
     train_n = len(train_targets)
     train_tally = dict(zip(*numpy.unique(train_targets, return_counts=True)))
     test_n = None
@@ -32,6 +37,11 @@ def get_split_and_balance(train_targets, test_targets):
 
 
 def calculate_false_negatives_and_positives(y_predict, y_actual):
+    """Calculates the false negative and positive rates given the predicted
+    values and the actual values.
+
+    :return:Dictionary with the false positive and negative rates.
+    """
     total = len(y_predict)
     if type(y_actual) == pandas.Series:
         neg_count = sum(
@@ -62,6 +72,12 @@ def calculate_false_negatives_and_positives(y_predict, y_actual):
 
 
 def round_up(x, nearest=1):
+    """Custom rounding method. Supports rounding to the nearest value defined
+     by the `nearest` parameter.
+
+    :return:integer value of x rounded to the nearest value specified by
+    `nearest`.
+    """
     x = x + 1 if x % nearest == 0 else x
     return int(nearest * math.ceil(float(x) / nearest))
 
@@ -107,6 +123,12 @@ def replace_isodate(file_name, replace_str):
 
 
 def get_json_in_subfolders(parent_folder, exclude_strings=list()):
+    """Recursively walk the subfolders of the supplied parent folder looking
+     for json files. Excludes any files with names containing values specified
+     in `exclude_strings`.
+
+    :return:list of paths to json files that meet the criteria.
+    """
     if not os.path.isdir(parent_folder):
         return None
 

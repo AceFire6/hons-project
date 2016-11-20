@@ -21,37 +21,43 @@ def get_split_and_balance(train_targets, test_targets):
     if test_targets is not None:
         test_n = len(test_targets)
         test_tally = dict(zip(*numpy.unique(test_targets, return_counts=True)))
-    return {'train_n': train_n, 'test_n': test_n,
-            'pos_train': train_tally.get(True, 0),
-            'neg_train': train_tally.get(False, 0),
-            'pos_test': test_tally.get(True, 0),
-            'neg_test': test_tally.get(False, 0)}
+    return {
+        'train_n': train_n,
+        'test_n': test_n,
+        'pos_train': train_tally.get(True, 0),
+        'neg_train': train_tally.get(False, 0),
+        'pos_test': test_tally.get(True, 0),
+        'neg_test': test_tally.get(False, 0)
+    }
 
 
-def calculate_false_negatives_and_positives(y_predict, y_actual,
-                                            normalize=True):
+def calculate_false_negatives_and_positives(y_predict, y_actual):
     total = len(y_predict)
     if type(y_actual) == pandas.Series:
         neg_count = sum(
             1 for i in xrange(total)
-            if y_predict[i] == False and y_actual.iloc[i] == True
+            # predicted false, actually true
+            if not y_predict[i] and y_actual.iloc[i]
         )
         pos_count = sum(
             1 for i in xrange(total)
-            if y_predict[i] == True and y_actual.iloc[i] == False
+            # predicted true, actually false
+            if y_predict[i] and not y_actual.iloc[i]
         )
     else:
         neg_count = sum(
             1 for i in xrange(total)
-            if y_predict[i] == False and y_actual[i] == True
+            # predicted false, actually true
+            if not y_predict[i] and y_actual[i]
         )
         pos_count = sum(
             1 for i in xrange(total)
-            if y_predict[i] == True and y_actual[i] == False
+            # predicted true, actually false
+            if y_predict[i] and not y_actual[i]
         )
     return {
-        'positives': float(pos_count) / total if normalize else pos_count,
-        'negatives': float(neg_count) / total if normalize else neg_count,
+        'positives': float(pos_count) / total,
+        'negatives': float(neg_count) / total,
     }
 
 
@@ -81,9 +87,9 @@ def get_short_codes(countries):
         try:
             codes.append(pycountry.countries.get(name=country).alpha3)
         except KeyError:
-            for c in pycountry.countries:
-                if country in c.name:
-                    codes.append(c.alpha3)
+            for country_info in pycountry.countries:
+                if country in country_info.name:
+                    codes.append(country_info.alpha3)
                     continue
             # Not a country - therefore Not Specified
             if country == 'Not Specified':
@@ -114,9 +120,9 @@ def get_json_in_subfolders(parent_folder, exclude_strings=list()):
     )
 
     if subfolders:
-        for folder in subfolders:
+        for subfolder in subfolders:
             json_files += get_json_in_subfolders(
-                os.path.join(parent_folder, folder)
+                os.path.join(parent_folder, subfolder), exclude_strings
             )
 
     for exclude_string in exclude_strings:

@@ -1,7 +1,7 @@
+import joblib
 import json
 import sys
 from datetime import datetime
-import joblib
 from joblib import Parallel, delayed
 from matplotlib import pyplot as plt
 from matplotlib.ticker import MultipleLocator
@@ -27,9 +27,11 @@ def fit_and_score(estimator, feature_data, target_data,
         test_targets = target_data.iloc[test_indices]
     else:
         estimator.fit(feature_data, target_data)
+
     classification = estimator.predict(test_features)
-    false_counts = calculate_false_negatives_and_positives(classification,
-                                                           test_targets)
+    false_counts = calculate_false_negatives_and_positives(
+        classification, test_targets
+    )
     return (
         estimator, estimator.score(test_features, test_targets), false_counts
     )
@@ -122,6 +124,7 @@ def repeat_validate_score(estimator, feature_data, target_data,
             test_features=test_features, test_targets=test_targets
         ) for i in range(repetitions)
     )
+
     best_estimator = None
     best_score = -1
     scores = []
@@ -134,6 +137,7 @@ def repeat_validate_score(estimator, feature_data, target_data,
         scores.append(score)
         false_negatives.append(false_counts['negatives'])
         false_positives.append(false_counts['positives'])
+
     return {
         'accuracy': numpy.array(scores),
         'false_negatives': numpy.array(false_negatives),
@@ -157,6 +161,7 @@ def cross_validate_score(estimator, feature_data, target_data,
             clone(estimator), feature_data, target_data, train, test
         ) for train, test in split
     )
+
     best_estimator = None
     best_score = -1
     scores = []
@@ -169,6 +174,7 @@ def cross_validate_score(estimator, feature_data, target_data,
         scores.append(score)
         false_negatives.append(false_counts['negatives'])
         false_positives.append(false_counts['positives'])
+
     return {
         'accuracy': numpy.array(scores),
         'false_negatives': numpy.array(false_negatives),
@@ -222,9 +228,11 @@ class ExperimentHelper(object):
                                                           target_data)
             test_features, test_targets = adasyn.fit_sample(test_features,
                                                             test_targets)
-            bal_str = ('\tBalanced to: (True/False) '
-                       'Train: {pos_train}/{neg_train} '
-                       'Test: {pos_test}/{neg_test}')
+            bal_str = (
+                '\tBalanced to: (True/False) '
+                'Train: {pos_train}/{neg_train} '
+                'Test: {pos_test}/{neg_test}'
+            )
             val_splits = get_split_and_balance(target_data, test_targets)
             results['balanced_stats'] = val_splits
             print (bal_str.format(**val_splits))
@@ -234,7 +242,8 @@ class ExperimentHelper(object):
             print '\tStarting %s - %s' % (estimator_name, test_type)
             if not repeat_test:
                 score = cross_validate_score(
-                    estimator, feature_data, target_data, cv=cross_folds
+                    estimator, feature_data,
+                    target_data, cv=cross_folds
                 )
             else:
                 score = repeat_validate_score(
@@ -293,8 +302,8 @@ class ExperimentHelper(object):
         if x_tick_indices or type(x_values[0]) not in [int, float]:
             labels = list_index(x_tick_indices, x_values)
             shorten_x_labels = (
-                any(len(str(i)) > max_x_len for i in labels) and
-                len(labels) >= 5
+                any(len(str(i)) > max_x_len for i in labels)
+                and len(labels) >= 5
             )
             if shorten_x_labels:
                 with open(file_name.replace('png', 'txt'), 'w') as label_f:
@@ -379,8 +388,8 @@ class ExperimentHelper(object):
         file_name = file_name or '%s-%s-graph.png' % (experiment, date)
 
         config = {
-            'x_values': x_values, 'file_name': file_name, 'y_label': y_label,
-            'x_label': x_label,
+            'x_values': x_values, 'file_name': file_name,
+            'y_label': y_label, 'x_label': x_label,
         }
 
         results_list = {}
@@ -391,14 +400,14 @@ class ExperimentHelper(object):
                     continue
                 if best_estimator.get('score', -1) > overall_best_est['score']:
                     overall_best_est = best_estimator
-                expr_label = '%s - ' % result['stats'].pop('label')
+                experiment_label = '%s - ' % result['stats'].pop('label')
                 info_file.write(
-                    expr_label + json.dumps(result['stats']) + '\n'
+                    experiment_label + json.dumps(result['stats']) + '\n'
                 )
                 if 'balanced_stats' in result:
                     info_file.write(
-                        '\t' + expr_label +
-                        json.dumps(result['balanced_stats']) + '\n'
+                        '\t' + experiment_label
+                        + json.dumps(result['balanced_stats']) + '\n'
                     )
                 for estimator, metrics in result['values']:
                     for metric, values in metrics.iteritems():
